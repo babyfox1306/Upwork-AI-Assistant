@@ -39,7 +39,21 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+          
+          # Use PAT_TOKEN if available, otherwise use GITHUB_TOKEN
+          if [ -n "${{ secrets.PAT_TOKEN }}" ]; then
+            TOKEN="${{ secrets.PAT_TOKEN }}"
+          else
+            TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          fi
+          
+          git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git
           git add data/raw_jobs.jsonl
-          git diff --staged --quiet || (git commit -m "Auto-update: New jobs from RSS [skip ci]" && git push)
+          
+          if ! git diff --staged --quiet; then
+            git commit -m "Auto-update: New jobs from RSS [skip ci]"
+            git push origin main
+          else
+            echo "No changes to commit"
+          fi
 
