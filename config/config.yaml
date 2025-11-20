@@ -1,33 +1,57 @@
-# Upwork RSS Configuration
-rss:
-  base_url: "https://www.upwork.com/ab/feed/jobs/rss"
-  params:
-    subcategory2_uid: "531770282580668418"
-    q: ""
-    sort: "renewed_desc"
-    proposals: "0-4,5-9,10-14,15-19,20-"
-    t: "fixed-price"
-    budget: "500-"
-    org: "1"
-    paging: "0%3B100"
-    api_params: "1"
-    securityToken: ""
-    user_location_match: "1"
+# Job Sources Configuration - Hỗ trợ nhiều nguồn uy tín
+sources:
+  # RSS Feeds từ các job boards uy tín
+  rss_feeds:
+    - name: "Indeed RSS"
+      url: "https://www.indeed.com/rss?q=wordpress+developer&l=&radius=25"
+      enabled: true
+      type: "rss"
+    - name: "RemoteOK RSS"
+      url: "https://remoteok.io/remote-dev-jobs.rss"
+      enabled: true
+      type: "rss"
+    - name: "We Work Remotely RSS"
+      url: "https://weworkremotely.com/categories/remote-programming-jobs.rss"
+      enabled: true
+      type: "rss"
+    - name: "Stack Overflow Jobs RSS"
+      url: "https://stackoverflow.com/jobs/feed?q=wordpress"
+      enabled: true
+      type: "rss"
+  
+  # Job Boards với API công khai
+  api_sources:
+    - name: "GitHub Jobs API"
+      url: "https://jobs.github.com/positions.json"
+      enabled: true
+      type: "api"
+      params:
+        description: "wordpress"
+        location: ""
+  
+  # Web scraping sources (cần cẩn thận với ToS)
+  web_sources:
+    - name: "Freelancer.com"
+      url: "https://www.freelancer.com/jobs/"
+      enabled: false  # Tắt mặc định, bật khi cần
+      type: "web"
+    - name: "Guru.com"
+      url: "https://www.guru.com/d/jobs/"
+      enabled: false
+      type: "web"
 
-# Categories to crawl
-categories:
-  - name: "WordPress"
-    subcategory2: "531770282580668418"
-  - name: "Laravel"
-    subcategory2: "531770282580668418"
-  - name: "Shopify"
-    subcategory2: "531770282580668418"
-  - name: "Node.js"
-    subcategory2: "531770282580668418"
-  - name: "React"
-    subcategory2: "531770282580668418"
-  - name: "Web Scraping"
-    subcategory2: "531770282580668418"
+# Keywords để search jobs (dùng cho các nguồn)
+search_keywords:
+  - "WordPress"
+  - "Laravel"
+  - "Shopify"
+  - "Node.js"
+  - "React"
+  - "Web Scraping"
+  - "PHP"
+  - "JavaScript"
+  - "Python"
+  - "API Development"
 
 # Ollama Configuration
 ollama:
