@@ -232,13 +232,23 @@ def main():
         }
         
         results = []
-        for future in as_completed(futures, timeout=30):  # Tổng timeout 30s
-            try:
-                result = future.result(timeout=5)
-                results.append(result)
-            except Exception as e:
-                feed_name = futures[future]['name']
-                results.append((0, feed_name, [], f"Timeout: {str(e)[:30]}"))
+        try:
+            for future in as_completed(futures, timeout=30):  # Tổng timeout 30s
+                try:
+                    result = future.result(timeout=5)
+                    results.append(result)
+                except Exception as e:
+                    feed_name = futures[future]['name']
+                    results.append((0, feed_name, [], f"Timeout: {str(e)[:30]}"))
+        except Exception as e:
+            # Nếu timeout toàn bộ, lấy kết quả đã có
+            print(f"⚠ Overall timeout, using partial results: {str(e)[:50]}")
+            for future in futures:
+                if future.done():
+                    try:
+                        results.append(future.result())
+                    except:
+                        pass
         
         # Sort theo index và print
         results.sort(key=lambda x: x[0])
