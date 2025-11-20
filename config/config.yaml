@@ -1,0 +1,46 @@
+# Upwork RSS Configuration
+rss:
+  base_url: "https://www.upwork.com/ab/feed/jobs/rss"
+  params:
+    subcategory2_uid: "531770282580668418"
+    q: ""
+    sort: "renewed_desc"
+    proposals: "0-4,5-9,10-14,15-19,20-"
+    t: "fixed-price"
+    budget: "500-"
+    org: "1"
+    paging: "0%3B100"
+    api_params: "1"
+    securityToken: ""
+    user_location_match: "1"
+
+# Categories to crawl
+categories:
+  - name: "WordPress"
+    subcategory2: "531770282580668418"
+  - name: "Laravel"
+    subcategory2: "531770282580668418"
+  - name: "Shopify"
+    subcategory2: "531770282580668418"
+  - name: "Node.js"
+    subcategory2: "531770282580668418"
+  - name: "React"
+    subcategory2: "531770282580668418"
+  - name: "Web Scraping"
+    subcategory2: "531770282580668418"
+
+# Ollama Configuration
+ollama:
+  model: "qwen2.5:7b-instruct-q4_K_M"
+  base_url: "http://localhost:11434"
+  embedding_model: "all-minilm"
+
+# ChromaDB Configuration
+chromadb:
+  collection_name: "upwork_jobs"
+  persist_directory: "data/chroma_db"
+
+# Query Settings
+query:
+  top_k: 10  # Số lượng jobs trả về khi query
+

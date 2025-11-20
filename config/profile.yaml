@@ -1,0 +1,16 @@
+name: "CEO Lysa"
+skills:
+  - WordPress
+  - Laravel
+  - Shopify
+  - Node.js
+  - React.js
+  - Web Scraping
+
+experience: 8
+rate: "15$/h hoặc fixed"
+
+portfolio:
+  - link: "https://github.com/ceohungyue/sample-project"
+    description: "Python scraper + automation"
+
