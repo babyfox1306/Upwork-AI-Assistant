@@ -87,6 +87,20 @@ for category in categories:
         # Parse RSS feed
         feed = feedparser.parse(rss_url)
         
+        # Debug info
+        feed_status = feed.get('status', 'Unknown')
+        if feed_status != 200:
+            print(f"⚠ RSS feed status {feed_status} for category {category['name']}")
+            if hasattr(feed, 'bozo_exception'):
+                print(f"   Error: {feed.bozo_exception}")
+            continue
+        
+        if not feed.entries:
+            print(f"⚠ No entries found for category {category['name']}")
+            continue
+        
+        print(f"✓ Found {len(feed.entries)} entries for category {category['name']}")
+        
         for entry in feed.entries:
             job_id = extract_job_id(entry.link)
             
@@ -116,7 +130,9 @@ for category in categories:
             existing_job_ids.add(job_id)
             
     except Exception as e:
-        print(f"Error crawling category {category['name']}: {e}")
+        print(f"❌ Error crawling category {category['name']}: {e}")
+        import traceback
+        traceback.print_exc()
         continue
 
 # Append new jobs to file
@@ -125,7 +141,13 @@ if new_jobs:
         for job in new_jobs:
             f.write(json.dumps(job, ensure_ascii=False) + '\n')
     
-    print(f"Added {len(new_jobs)} new jobs")
+    print(f"✅ Added {len(new_jobs)} new jobs")
 else:
-    print("No new jobs found")
+    print("ℹ️  No new jobs found")
+    # Debug: Check if RSS is accessible
+    test_url = rss_config['base_url']
+    test_feed = feedparser.parse(test_url)
+    if test_feed.get('status') == 410:
+        print("⚠️  RSS feed returns 410 (Gone) - Upwork may have changed the endpoint")
+        print(f"   Test URL: {test_url}")
 
