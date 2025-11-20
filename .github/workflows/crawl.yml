@@ -28,6 +28,7 @@ jobs:
           pip install feedparser pyyaml requests
 
       - name: Crawl Jobs from Multiple Sources
+        timeout-minutes: 2
         run: |
           python scripts/crawl_multi_source.py
 
