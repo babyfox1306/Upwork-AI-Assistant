@@ -2,6 +2,9 @@
 """
 Script crawl RSS Upwork và lưu vào raw_jobs.jsonl
 Chạy trong GitHub Actions mỗi 15 phút
+
+⚠️ LƯU Ý: Upwork đã ngừng hỗ trợ RSS feed từ 20/8/2024.
+Cần chuyển sang dùng Upwork API. Xem UPWORK_API_SETUP.md để biết cách setup.
 """
 
 import feedparser
@@ -148,6 +151,20 @@ else:
     test_url = rss_config['base_url']
     test_feed = feedparser.parse(test_url)
     if test_feed.get('status') == 410:
-        print("⚠️  RSS feed returns 410 (Gone) - Upwork may have changed the endpoint")
-        print(f"   Test URL: {test_url}")
+        print("=" * 60)
+        print("❌ RSS FEED ĐÃ BỊ TẮT")
+        print("=" * 60)
+        print("Upwork đã chính thức ngừng hỗ trợ RSS feed từ 20/8/2024.")
+        print("RSS endpoint trả về 410 (Gone).")
+        print("")
+        print("✅ GIẢI PHÁP:")
+        print("   1. Request Upwork API key: https://support.upwork.com/hc/en-us/articles/17995842326931")
+        print("   2. Setup OAuth 2.0 authentication")
+        print("   3. Update script để dùng Upwork API thay vì RSS")
+        print("   4. Xem chi tiết trong file: UPWORK_API_SETUP.md")
+        print("")
+        print("💡 TẠM THỜI:")
+        print("   - Có thể tạo sample data để test hệ thống")
+        print("   - Hoặc dùng service UpNotify: https://upnotify.me/")
+        print("=" * 60)
 
