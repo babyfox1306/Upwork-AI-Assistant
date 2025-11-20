@@ -9,6 +9,8 @@ on:
 jobs:
   crawl:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout repository
@@ -34,8 +36,6 @@ jobs:
           python scripts/crawl_multi_source.py
 
       - name: Commit and push if changes
-        permissions:
-          contents: write
         env:
           TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
