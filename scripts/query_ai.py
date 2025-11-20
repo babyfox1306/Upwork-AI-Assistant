@@ -198,8 +198,36 @@ def find_customization_points(job, profile):
     
     return points[:3]  # Tối đa 3 điểm
 
+def load_ai_rules():
+    """Load AI rules từ ai_rules/"""
+    rules_dir = Path(__file__).parent.parent / 'ai_rules'
+    rules = {}
+    
+    # Load system instruction
+    analysis_file = rules_dir / 'analysis.md'
+    if analysis_file.exists():
+        with open(analysis_file, 'r', encoding='utf-8') as f:
+            rules['system'] = f.read()
+    
+    # Load rulebook
+    rules_file = rules_dir / 'upwork_rules.md'
+    if rules_file.exists():
+        with open(rules_file, 'r', encoding='utf-8') as f:
+            rules['rulebook'] = f.read()
+    
+    # Load hardware constraints
+    hardware_file = rules_dir / 'hardware.md'
+    if hardware_file.exists():
+        with open(hardware_file, 'r', encoding='utf-8') as f:
+            rules['hardware'] = f.read()
+    
+    return rules
+
 def build_prompt(jobs, profile):
     """Build prompt cho Ollama với quy tắc kỷ luật"""
+    
+    # Load AI rules
+    ai_rules = load_ai_rules()
     
     profile_text = f"""
 Profile CEO:
@@ -220,32 +248,31 @@ Job {i}:
 - Link: {job.get('link', '')}
 """
     
-    prompt = f"""Em là Upwork Assistant của CEO Hùng, một freelancer Việt Nam với {profile.get('experience', 0)} năm kinh nghiệm.
+    # Build system prompt với AI rules
+    system_instruction = ai_rules.get('system', '')
+    rulebook = ai_rules.get('rulebook', '')
+    hardware = ai_rules.get('hardware', '')
+    
+    prompt = f"""{system_instruction}
 
-QUY TẮC NGHIÊM NGẶT:
-- Em LUÔN bắt đầu: "Dạ anh, em scan xong rồi đây ạ:"
-- Em LUÔN kết thúc: "Anh xem sao, quyết định cuối cùng thuộc về anh."
-- KHÔNG BAO GIỜ dùng từ: "nên", "phải", "tốt nhất", "đề xuất"
-- Ngôi xưng: luôn "em"
-- Giọng điệu: thực tế, hơi bựa, freelancer VN 8-10 năm kinh nghiệm
-- Em KHÔNG có quyền quyết định, chỉ phân tích và liệt kê
+{rulebook}
+
+{hardware}
 
 {profile_text}
 
-Em vừa scan được {len(jobs)} jobs. Hãy phân tích và liệt kê từng job theo format:
-
-1. [Link]
-   Budget: $...
-   Proposals: ...
-   Client: ...
-   Scam flag: [3 dấu hiệu scam hoặc "Không phát hiện dấu hiệu scam"]
-   Ước lượng thắng: [Cao/Trung bình/Thấp]
-   Match mạnh: [3 điểm match với profile]
-   Cần cá nhân hóa: [3 điểm cần customize proposal]
+Em vừa scan được {len(jobs)} jobs. Hãy phân tích từng job theo format trong RULEBOOK:
 
 {jobs_text}
 
-Hãy phân tích và liệt kê theo đúng format trên, tuân thủ 100% quy tắc ngôn ngữ."""
+Phân tích theo đúng cấu trúc:
+1) Tổng quan job
+2) Smell job (mùi rủi ro)
+3) Khả năng phù hợp
+4) ROI
+5) Verdict (CHỐT: NÊN LẤY / KHÔNG NÊN LẤY)
+
+Tuân thủ 100% quy tắc: nói thẳng, thực tế, quyết đoán, không chung chung."""
     
     return prompt
 

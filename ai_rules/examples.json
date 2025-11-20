@@ -1,0 +1,55 @@
+[
+  {
+    "input": "PDF Parsing Service for Bank Statements - $500",
+    "analysis": {
+      "overview": "Nghe thì đơn giản nhưng thực tế mệt vì mỗi bank một format PDF.",
+      "smell": [
+        "Multi-bank = nát scope",
+        "Language requirement (Ukraine/Russian) = risk",
+        "Support thêm = scope creep 100%",
+        "Parsing <30s cho PDF xấu = không thực"
+      ],
+      "matching": {
+        "fit": ["PDF parsing ok", "service ok"],
+        "not_fit": ["multi-format", "GDPR compliance", "language"]
+      },
+      "roi": "Giá $500 không xứng công sức nếu format không cố định.",
+      "verdict": "KHÔNG NÊN LẤY trừ khi PDF 1 format cố định."
+    }
+  },
+  {
+    "input": "WordPress E-commerce Site with WooCommerce - $1,200 fixed",
+    "analysis": {
+      "overview": "Job rõ ràng, budget hợp lý, client từ USA.",
+      "smell": [
+        "Chưa thấy rõ yêu cầu payment gateway nào",
+        "Cần hỏi thêm về số lượng products"
+      ],
+      "matching": {
+        "fit": ["WordPress expert", "WooCommerce experience", "E-commerce portfolio"],
+        "not_fit": []
+      },
+      "roi": "Budget $1,200 cho e-commerce site là hợp lý. Time estimate: 3-5 ngày.",
+      "verdict": "NÊN LẤY - Job rõ ràng, budget tốt, match skills."
+    }
+  },
+  {
+    "input": "Build Complete SaaS Platform - $500 fixed",
+    "analysis": {
+      "overview": "Budget $500 cho SaaS platform = red flag ngay từ đầu.",
+      "smell": [
+        "Budget quá thấp cho scope quá lớn",
+        "SaaS = backend + frontend + auth + payment + hosting = ít nhất $3k-5k",
+        "Client không hiểu giá trị công việc",
+        "Scope creep 100% sẽ xảy ra"
+      ],
+      "matching": {
+        "fit": [],
+        "not_fit": ["Budget không đủ", "Scope quá lớn"]
+      },
+      "roi": "ROI âm. $500 không đủ cho 1 tuần làm việc chất lượng.",
+      "verdict": "KHÔNG NÊN LẤY - Budget không tương xứng scope."
+    }
+  }
+]
+
