@@ -145,8 +145,7 @@ def crawl_rss_feed(feed_config):
         return jobs
     
     except Exception as e:
-        print(f"❌ Error crawling {name}: {str(e)[:100]}")
-        return []
+        raise Exception(f"{name}: {str(e)[:50]}")
 
 def crawl_api_source(api_config):
     """Crawl từ API"""
@@ -161,7 +160,7 @@ def crawl_api_source(api_config):
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
-        response = requests.get(url, params=params, headers=headers, timeout=15)
+        response = requests.get(url, params=params, headers=headers, timeout=5)
         response.raise_for_status()
         data = response.json()
         
@@ -202,8 +201,7 @@ def crawl_api_source(api_config):
         return jobs
     
     except Exception as e:
-        print(f"❌ Error crawling {name}: {str(e)[:100]}")
-        return []
+        raise Exception(f"{name}: {str(e)[:50]}")
 
 def main():
     """Main crawl function với parallel processing"""
