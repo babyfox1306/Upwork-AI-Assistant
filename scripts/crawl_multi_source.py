@@ -14,7 +14,6 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlencode, quote
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import signal
 
 # Load config
 config_path = Path(__file__).parent.parent / 'config' / 'config.yaml'
