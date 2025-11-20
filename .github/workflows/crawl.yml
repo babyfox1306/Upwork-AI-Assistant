@@ -26,6 +26,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install feedparser pyyaml requests
+          # ThreadPoolExecutor is built-in, no need to install
 
       - name: Crawl Jobs from Multiple Sources
         timeout-minutes: 2
