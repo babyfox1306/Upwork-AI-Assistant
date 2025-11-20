@@ -129,10 +129,9 @@ def crawl_rss_feed(feed_config):
             return []
         
         if not feed.entries:
-            print(f"⚠ No entries in {name}")
             return []
         
-        print(f"✓ Found {len(feed.entries)} entries from {name}")
+        # Return count, don't print here (will print in main)
         
         jobs = []
         for entry in feed.entries:
@@ -170,7 +169,7 @@ def crawl_api_source(api_config):
         # Filter out invalid entries
         valid_data = [item for item in data if item and isinstance(item, dict)]
         
-        print(f"✓ Found {len(valid_data)} entries from {name}")
+        # Return count, don't print here (will print in main)
         
         jobs = []
         for item in valid_data:
@@ -214,23 +213,41 @@ def main():
     
     # Crawl RSS feeds
     rss_feeds = sources.get('rss_feeds', [])
-    for feed_config in rss_feeds:
-        jobs = crawl_rss_feed(feed_config)
-        all_jobs.extend(jobs)
+    enabled_feeds = [f for f in rss_feeds if f.get('enabled', False)]
+    print(f"\n📡 Crawling {len(enabled_feeds)} RSS feeds...")
+    
+    for i, feed_config in enumerate(enabled_feeds, 1):
+        print(f"[{i}/{len(enabled_feeds)}] {feed_config['name']}...", end=' ', flush=True)
+        try:
+            jobs = crawl_rss_feed(feed_config)
+            all_jobs.extend(jobs)
+            print(f"✓ {len(jobs)} jobs")
+        except Exception as e:
+            print(f"✗ Error: {str(e)[:50]}")
     
     # Crawl API sources
     api_sources = sources.get('api_sources', [])
-    for api_config in api_sources:
-        jobs = crawl_api_source(api_config)
-        all_jobs.extend(jobs)
+    enabled_apis = [a for a in api_sources if a.get('enabled', False)]
+    if enabled_apis:
+        print(f"\n🔌 Crawling {len(enabled_apis)} API sources...")
+        for i, api_config in enumerate(enabled_apis, 1):
+            print(f"[{i}/{len(enabled_apis)}] {api_config['name']}...", end=' ', flush=True)
+            try:
+                jobs = crawl_api_source(api_config)
+                all_jobs.extend(jobs)
+                print(f"✓ {len(jobs)} jobs")
+            except Exception as e:
+                print(f"✗ Error: {str(e)[:50]}")
     
     # Save jobs
+    print(f"\n💾 Đang lưu {len(all_jobs)} jobs...")
     if all_jobs:
         with open(raw_jobs_file, 'a', encoding='utf-8') as f:
             for job in all_jobs:
                 f.write(json.dumps(job, ensure_ascii=False) + '\n')
         
-        print(f"\n✅ Đã thêm {len(all_jobs)} jobs mới từ {len(set(j['source'] for j in all_jobs))} nguồn")
+        sources_count = len(set(j['source'] for j in all_jobs))
+        print(f"\n✅ Đã thêm {len(all_jobs)} jobs mới từ {sources_count} nguồn")
     else:
         print("\nℹ️  Không tìm thấy jobs mới")
     
