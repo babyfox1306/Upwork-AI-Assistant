@@ -261,18 +261,20 @@ Job {i}:
 
 {profile_text}
 
-Em vừa scan được {len(jobs)} jobs. Hãy phân tích từng job theo format trong RULEBOOK:
+Em vừa scan được {len(jobs)} jobs. Hãy phân tích từng job theo đúng 7 TẦNG trong RULEBOOK:
 
 {jobs_text}
 
-Phân tích theo đúng cấu trúc:
-1) Tổng quan job
-2) Smell job (mùi rủi ro)
-3) Khả năng phù hợp
-4) ROI
-5) Verdict (CHỐT: NÊN LẤY / KHÔNG NÊN LẤY)
+PHÂN TÍCH BẮT BUỘC THEO 7 TẦNG:
+1) INTENT ANALYSIS - Lý do khách post job
+2) TECH FEASIBILITY - Có gì không thực tế?
+3) SCOPE CREEP DETECTION - Mùi phình scope
+4) ROI CHECK REAL - Lời bao nhiêu theo giờ?
+5) COMPETITION INTEL - Số proposal, dân Ấn/Pakistan, cheap labor trap
+6) TIER MATCHING - Job này hợp với mình không?
+7) VERDICT - CHỐT: NÊN LẤY / KHÔNG NÊN LẤY (có lý do chiến lược)
 
-Tuân thủ 100% quy tắc: nói thẳng, thực tế, quyết đoán, không chung chung."""
+Tuân thủ 100%: nói thẳng như chiến binh Gen Z, thực tế, quyết đoán, không vòng vo, không chung chung."""
     
     return prompt
 

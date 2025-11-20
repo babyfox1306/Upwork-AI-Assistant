@@ -1,55 +1,134 @@
 [
   {
-    "input": "PDF Parsing Service for Bank Statements - $500",
+    "input": "PDF Parsing Service for Bank Statements - $500 fixed",
     "analysis": {
-      "overview": "Nghe thì đơn giản nhưng thực tế mệt vì mỗi bank một format PDF.",
-      "smell": [
-        "Multi-bank = nát scope",
-        "Language requirement (Ukraine/Russian) = risk",
-        "Support thêm = scope creep 100%",
-        "Parsing <30s cho PDF xấu = không thực"
-      ],
-      "matching": {
-        "fit": ["PDF parsing ok", "service ok"],
-        "not_fit": ["multi-format", "GDPR compliance", "language"]
+      "intent": {
+        "thiếu": "Không có hệ thống parse PDF tự động, đang làm thủ công",
+        "đau": "Mỗi bank một format PDF khác nhau, tốn thời gian",
+        "muốn": "Babe chạy việc - muốn ai đó làm hộ, không phải giải pháp",
+        "job_thật": "Có thể là test job, budget thấp cho scope lớn"
       },
-      "roi": "Giá $500 không xứng công sức nếu format không cố định.",
-      "verdict": "KHÔNG NÊN LẤY trừ khi PDF 1 format cố định."
+      "tech_feasibility": {
+        "scraping": "Không cần scraping",
+        "api": "Cần parse PDF multi-format",
+        "data_source": "PDF từ client, không công khai",
+        "multi_format": "Mỗi bank một format → không khả thi với $500",
+        "red_flags": ["Multi-bank format", "Language requirement (Ukraine/Russian)", "Parsing <30s không thực"]
+      },
+      "scope_creep": {
+        "mùi_phình": "100% - sẽ thêm banks, thêm formats, thêm requirements",
+        "wording_nguy_hiểm": ["Support thêm", "Có thể cần thêm...", "Nếu có thể..."],
+        "output_chung_chung": "Parse tất cả PDF banks",
+        "risk_level": "Cao"
+      },
+      "roi": {
+        "giờ_ước_lượng": "20-30 giờ (research formats + code + test + debug)",
+        "rate_thực": "$16-25/giờ",
+        "connect_cost": "$0 (nếu free connects)",
+        "net_profit": "$500",
+        "roi": "Kém - không xứng công sức"
+      },
+      "competition": {
+        "proposals": "15-25",
+        "dân_ấn_pakistan": "Có, đang nhảy vào mạnh",
+        "cheap_labor_trap": "Có nguy cơ cao",
+        "win_rate": "Thấp (<20%) - budget không đủ, competition cao"
+      },
+      "tier_matching": {
+        "match": "Có - PDF parsing ok",
+        "máy": "Đủ - không cần GPU",
+        "scale": "Không - mỗi bank một format riêng",
+        "template_value": "Thấp - không dùng lại được"
+      },
+      "verdict": "KHÔNG NÊN LẤY - Budget $500 không đủ cho scope multi-format. ROI kém, scope creep 100%, competition cao."
     }
   },
   {
     "input": "WordPress E-commerce Site with WooCommerce - $1,200 fixed",
     "analysis": {
-      "overview": "Job rõ ràng, budget hợp lý, client từ USA.",
-      "smell": [
-        "Chưa thấy rõ yêu cầu payment gateway nào",
-        "Cần hỏi thêm về số lượng products"
-      ],
-      "matching": {
-        "fit": ["WordPress expert", "WooCommerce experience", "E-commerce portfolio"],
-        "not_fit": []
+      "intent": {
+        "thiếu": "Không có website bán hàng, đang dùng platform khác",
+        "đau": "Phí platform cao, không control được",
+        "muốn": "Giải pháp - muốn website riêng, tự quản lý",
+        "job_thật": "Job thật, client từ USA, budget hợp lý"
       },
-      "roi": "Budget $1,200 cho e-commerce site là hợp lý. Time estimate: 3-5 ngày.",
-      "verdict": "NÊN LẤY - Job rõ ràng, budget tốt, match skills."
+      "tech_feasibility": {
+        "scraping": "Không cần",
+        "api": "WooCommerce + payment gateway (Stripe/PayPal)",
+        "data_source": "Client cung cấp products",
+        "multi_format": "Không",
+        "red_flags": []
+      },
+      "scope_creep": {
+        "mùi_phình": "Trung bình - có thể thêm features",
+        "wording_nguy_hiểm": ["Có thể cần thêm payment methods"],
+        "output_chung_chung": "Không",
+        "risk_level": "Trung bình"
+      },
+      "roi": {
+        "giờ_ước_lượng": "15-20 giờ (setup + theme + products + payment)",
+        "rate_thực": "$60-80/giờ",
+        "connect_cost": "$0",
+        "net_profit": "$1,200",
+        "roi": "Tốt - hợp lý với scope"
+      },
+      "competition": {
+        "proposals": "8-12",
+        "dân_ấn_pakistan": "Có nhưng không nhiều",
+        "cheap_labor_trap": "Không - budget đủ tốt",
+        "win_rate": "Cao (>50%) - match skills, budget tốt"
+      },
+      "tier_matching": {
+        "match": "Có - WordPress + WooCommerce expert",
+        "máy": "Đủ",
+        "scale": "Có - có thể dùng template cho jobs tương tự",
+        "template_value": "Cao - portfolio tốt"
+      },
+      "verdict": "NÊN LẤY - Budget hợp lý, scope rõ ràng, match skills, ROI tốt. Có thể scale thành template."
     }
   },
   {
     "input": "Build Complete SaaS Platform - $500 fixed",
     "analysis": {
-      "overview": "Budget $500 cho SaaS platform = red flag ngay từ đầu.",
-      "smell": [
-        "Budget quá thấp cho scope quá lớn",
-        "SaaS = backend + frontend + auth + payment + hosting = ít nhất $3k-5k",
-        "Client không hiểu giá trị công việc",
-        "Scope creep 100% sẽ xảy ra"
-      ],
-      "matching": {
-        "fit": [],
-        "not_fit": ["Budget không đủ", "Scope quá lớn"]
+      "intent": {
+        "thiếu": "Không có platform, đang dùng giải pháp khác",
+        "đau": "Phí cao hoặc không đủ features",
+        "muốn": "Babe chạy việc - muốn ai đó build hộ rẻ",
+        "job_thật": "Có thể là test hoặc client không hiểu giá trị"
       },
-      "roi": "ROI âm. $500 không đủ cho 1 tuần làm việc chất lượng.",
-      "verdict": "KHÔNG NÊN LẤY - Budget không tương xứng scope."
+      "tech_feasibility": {
+        "scraping": "Không cần",
+        "api": "Cần backend + frontend + auth + payment + hosting",
+        "data_source": "Client cung cấp",
+        "multi_format": "Không",
+        "red_flags": ["SaaS = ít nhất $3k-5k", "Budget $500 = red flag ngay"]
+      },
+      "scope_creep": {
+        "mùi_phình": "100% - sẽ thêm features, integrations, support",
+        "wording_nguy_hiểm": ["Complete", "All features", "Everything"],
+        "output_chung_chung": "Complete SaaS platform",
+        "risk_level": "Cao"
+      },
+      "roi": {
+        "giờ_ước_lượng": "40-60 giờ (backend + frontend + auth + payment + deploy)",
+        "rate_thực": "$8-12/giờ",
+        "connect_cost": "$0",
+        "net_profit": "$500",
+        "roi": "Rất kém - ROI âm"
+      },
+      "competition": {
+        "proposals": "30-50",
+        "dân_ấn_pakistan": "Rất nhiều - đang nhảy vào",
+        "cheap_labor_trap": "100% - đây là trap",
+        "win_rate": "Rất thấp (<10%) - budget không đủ"
+      },
+      "tier_matching": {
+        "match": "Có - skills đủ",
+        "máy": "Đủ",
+        "scale": "Có nhưng không đáng",
+        "template_value": "Trung bình"
+      },
+      "verdict": "KHÔNG NÊN LẤY - Budget $500 cho SaaS platform = ROI âm. Đây là cheap labor trap, competition cao, scope creep 100%."
     }
   }
 ]
-
