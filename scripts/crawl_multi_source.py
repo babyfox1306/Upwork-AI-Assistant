@@ -114,10 +114,18 @@ def crawl_rss_feed(feed_config):
     name = feed_config['name']
     
     try:
+        # Add User-Agent để tránh bị block
+        import urllib.request
+        req = urllib.request.Request(url)
+        req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+        
         feed = feedparser.parse(url)
         
-        if feed.get('status') != 200:
-            print(f"⚠ RSS feed {name} status {feed.get('status')}")
+        status = feed.get('status', 200)
+        if status not in [200, 301, 302]:  # Allow redirects
+            print(f"⚠ RSS feed {name} status {status}")
+            if hasattr(feed, 'bozo_exception'):
+                print(f"   Error: {feed.bozo_exception}")
             return []
         
         if not feed.entries:
@@ -136,7 +144,7 @@ def crawl_rss_feed(feed_config):
         return jobs
     
     except Exception as e:
-        print(f"❌ Error crawling {name}: {e}")
+        print(f"❌ Error crawling {name}: {str(e)[:100]}")
         return []
 
 def crawl_api_source(api_config):
@@ -149,25 +157,41 @@ def crawl_api_source(api_config):
     params = api_config.get('params', {})
     
     try:
-        response = requests.get(url, params=params, timeout=10)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        response = requests.get(url, params=params, headers=headers, timeout=15)
         response.raise_for_status()
         data = response.json()
         
         if not isinstance(data, list):
             data = [data]
         
-        print(f"✓ Found {len(data)} entries from {name}")
+        # Filter out invalid entries
+        valid_data = [item for item in data if item and isinstance(item, dict)]
+        
+        print(f"✓ Found {len(valid_data)} entries from {name}")
         
         jobs = []
-        for item in data:
-            # Convert API response to entry format
-            entry = {
-                'title': item.get('title', item.get('name', '')),
-                'link': item.get('url', item.get('link', '')),
-                'description': item.get('description', item.get('summary', '')),
-                'location': item.get('location', ''),
-                'published': item.get('created_at', item.get('date', ''))
-            }
+        for item in valid_data:
+            # RemoteOK API format
+            if 'slug' in item or 'id' in item:
+                entry = {
+                    'title': item.get('position', item.get('title', item.get('name', ''))),
+                    'link': item.get('url', item.get('apply_url', f"https://remoteok.io/remote-jobs/{item.get('id', '')}")),
+                    'description': item.get('description', item.get('summary', '')),
+                    'location': item.get('location', item.get('location_name', 'Remote')),
+                    'published': item.get('epoch', item.get('created_at', item.get('date', '')))
+                }
+            else:
+                # Generic API format
+                entry = {
+                    'title': item.get('title', item.get('name', '')),
+                    'link': item.get('url', item.get('link', item.get('apply_url', ''))),
+                    'description': item.get('description', item.get('summary', '')),
+                    'location': item.get('location', ''),
+                    'published': item.get('created_at', item.get('date', ''))
+                }
             
             job = normalize_job(entry, name, 'api')
             if job:
@@ -177,7 +201,7 @@ def crawl_api_source(api_config):
         return jobs
     
     except Exception as e:
-        print(f"❌ Error crawling {name}: {e}")
+        print(f"❌ Error crawling {name}: {str(e)[:100]}")
         return []
 
 def main():

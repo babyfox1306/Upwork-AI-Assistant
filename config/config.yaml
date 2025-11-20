@@ -1,39 +1,61 @@
 # Job Sources Configuration - Hỗ trợ nhiều nguồn uy tín
 sources:
-  # RSS Feeds từ các job boards uy tín
+  # RSS Feeds từ các job boards uy tín (đã test và hoạt động)
   rss_feeds:
-    - name: "Indeed RSS"
-      url: "https://www.indeed.com/rss?q=wordpress+developer&l=&radius=25"
-      enabled: true
-      type: "rss"
-    - name: "RemoteOK RSS"
-      url: "https://remoteok.io/remote-dev-jobs.rss"
-      enabled: true
-      type: "rss"
-    - name: "We Work Remotely RSS"
+    - name: "We Work Remotely - Programming"
       url: "https://weworkremotely.com/categories/remote-programming-jobs.rss"
       enabled: true
       type: "rss"
-    - name: "Stack Overflow Jobs RSS"
-      url: "https://stackoverflow.com/jobs/feed?q=wordpress"
+    - name: "We Work Remotely - Design"
+      url: "https://weworkremotely.com/categories/remote-design-jobs.rss"
+      enabled: true
+      type: "rss"
+    - name: "Remote.co - All Jobs"
+      url: "https://remote.co/remote-jobs/feed/"
+      enabled: true
+      type: "rss"
+    - name: "Working Nomads - Development"
+      url: "https://www.workingnomads.com/jobsrss?category=development"
+      enabled: true
+      type: "rss"
+    - name: "Working Nomads - Design"
+      url: "https://www.workingnomads.com/jobsrss?category=design"
+      enabled: true
+      type: "rss"
+    - name: "FlexJobs RSS"
+      url: "https://www.flexjobs.com/rss/jobs.xml"
+      enabled: true
+      type: "rss"
+    - name: "Remote Work Hub"
+      url: "https://remoteworkhub.com/feed/"
+      enabled: true
+      type: "rss"
+    - name: "Jobspresso - Remote Jobs"
+      url: "https://jobspresso.co/feed/"
+      enabled: true
+      type: "rss"
+    - name: "RemoteOK - Dev Jobs"
+      url: "https://remoteok.io/remote-dev-jobs.rss"
+      enabled: true
+      type: "rss"
+    - name: "JustRemote - All Jobs"
+      url: "https://justremote.co/remote-jobs/feed"
       enabled: true
       type: "rss"
   
   # Job Boards với API công khai
   api_sources:
-    - name: "GitHub Jobs API"
-      url: "https://jobs.github.com/positions.json"
+    - name: "RemoteOK API"
+      url: "https://remoteok.io/api"
       enabled: true
       type: "api"
-      params:
-        description: "wordpress"
-        location: ""
+      params: {}
   
   # Web scraping sources (cần cẩn thận với ToS)
   web_sources:
     - name: "Freelancer.com"
       url: "https://www.freelancer.com/jobs/"
-      enabled: false  # Tắt mặc định, bật khi cần
+      enabled: false
       type: "web"
     - name: "Guru.com"
       url: "https://www.guru.com/d/jobs/"
@@ -67,4 +89,3 @@ chromadb:
 # Query Settings
 query:
   top_k: 10  # Số lượng jobs trả về khi query
-
