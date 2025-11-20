@@ -13,6 +13,8 @@ import requests
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlencode, quote
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import signal
 
 # Load config
 config_path = Path(__file__).parent.parent / 'config' / 'config.yaml'
@@ -204,26 +206,50 @@ def crawl_api_source(api_config):
         return []
 
 def main():
-    """Main crawl function"""
+    """Main crawl function với parallel processing"""
     print("=" * 60)
     print("🔄 Bắt đầu crawl jobs từ nhiều nguồn uy tín...")
     print("=" * 60)
     
     all_jobs = []
     
-    # Crawl RSS feeds
+    # Crawl RSS feeds - chạy song song với timeout
     rss_feeds = sources.get('rss_feeds', [])
     enabled_feeds = [f for f in rss_feeds if f.get('enabled', False)]
-    print(f"\n📡 Crawling {len(enabled_feeds)} RSS feeds...")
+    print(f"\n📡 Crawling {len(enabled_feeds)} RSS feeds (parallel, timeout 5s each)...")
     
-    for i, feed_config in enumerate(enabled_feeds, 1):
-        print(f"[{i}/{len(enabled_feeds)}] {feed_config['name']}...", end=' ', flush=True)
+    def crawl_with_timeout(feed_config, index, total):
+        """Crawl với timeout"""
         try:
             jobs = crawl_rss_feed(feed_config)
-            all_jobs.extend(jobs)
-            print(f"✓ {len(jobs)} jobs")
+            return (index, feed_config['name'], jobs, None)
         except Exception as e:
-            print(f"✗ Error: {str(e)[:50]}")
+            return (index, feed_config['name'], [], str(e))
+    
+    # Chạy song song tối đa 5 threads
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {
+            executor.submit(crawl_with_timeout, feed, i+1, len(enabled_feeds)): feed 
+            for i, feed in enumerate(enabled_feeds)
+        }
+        
+        results = []
+        for future in as_completed(futures, timeout=30):  # Tổng timeout 30s
+            try:
+                result = future.result(timeout=5)
+                results.append(result)
+            except Exception as e:
+                feed_name = futures[future]['name']
+                results.append((0, feed_name, [], f"Timeout: {str(e)[:30]}"))
+        
+        # Sort theo index và print
+        results.sort(key=lambda x: x[0])
+        for index, name, jobs, error in results:
+            if error:
+                print(f"[{index}/{len(enabled_feeds)}] {name}... ✗ {error}")
+            else:
+                all_jobs.extend(jobs)
+                print(f"[{index}/{len(enabled_feeds)}] {name}... ✓ {len(jobs)} jobs")
     
     # Crawl API sources
     api_sources = sources.get('api_sources', [])
@@ -237,7 +263,7 @@ def main():
                 all_jobs.extend(jobs)
                 print(f"✓ {len(jobs)} jobs")
             except Exception as e:
-                print(f"✗ Error: {str(e)[:50]}")
+                print(f"✗ {str(e)[:50]}")
     
     # Save jobs
     print(f"\n💾 Đang lưu {len(all_jobs)} jobs...")
