@@ -51,12 +51,29 @@ def main():
     
     if not new_jobs:
         print("ℹ️  Không có job mới để phân tích")
-    else:
-        # Analyze top 10 jobs (để không tốn thời gian)
-        print(f"\n🔍 Phân tích top 10 jobs...")
+        # Skip AI analysis nếu không có jobs mới
         analyzed = []
-        for i, job in enumerate(new_jobs[:10], 1):
-            print(f"[{i}/10] Analyzing: {job.get('title', 'N/A')[:50]}...", end=' ', flush=True)
+    elif len(new_jobs) > 50:
+        # Nếu quá nhiều jobs mới, chỉ phân tích top 3 để tiết kiệm thời gian
+        print(f"\n⚠️  Quá nhiều jobs mới ({len(new_jobs)}), chỉ phân tích top 3...")
+        analyzed = []
+        for i, job in enumerate(new_jobs[:3], 1):
+            print(f"[{i}/3] Analyzing: {job.get('title', 'N/A')[:50]}...", end=' ', flush=True)
+            try:
+                analysis = analyse_job(job)
+                analyzed.append({
+                    'job': job,
+                    'analysis': analysis
+                })
+                print("✓")
+            except Exception as e:
+                print(f"✗ Error: {str(e)[:30]}")
+    else:
+        # Analyze top 5 jobs (giảm từ 10 xuống 5 để nhanh hơn)
+        print(f"\n🔍 Phân tích top 5 jobs...")
+        analyzed = []
+        for i, job in enumerate(new_jobs[:5], 1):
+            print(f"[{i}/5] Analyzing: {job.get('title', 'N/A')[:50]}...", end=' ', flush=True)
             try:
                 analysis = analyse_job(job)
                 analyzed.append({
@@ -79,14 +96,17 @@ def main():
             
             print(f"\n✅ Đã lưu {len(analyzed)} analyses vào {analyses_file.name}")
     
-    # Generate daily summary
-    print(f"\n📝 Generating daily summary...")
-    try:
-        daily_summary = generate_daily_summary()
-        print(f"✅ Daily summary: {daily_summary.get('total_jobs', 0)} jobs")
-        print(f"   Top keywords: {', '.join([k['keyword'] for k in daily_summary.get('top_keywords', [])[:5]])}")
-    except Exception as e:
-        print(f"✗ Error generating daily summary: {str(e)[:50]}")
+    # Generate daily summary (chỉ nếu có jobs mới)
+    if new_jobs:
+        print(f"\n📝 Generating daily summary...")
+        try:
+            daily_summary = generate_daily_summary()
+            print(f"✅ Daily summary: {daily_summary.get('total_jobs', 0)} jobs")
+            print(f"   Top keywords: {', '.join([k['keyword'] for k in daily_summary.get('top_keywords', [])[:5]])}")
+        except Exception as e:
+            print(f"✗ Error generating daily summary: {str(e)[:50]}")
+    else:
+        print(f"\n⏭️  Skipping daily summary (không có jobs mới)")
     
     # Generate weekly summary (chỉ chạy vào Chủ nhật)
     from datetime import datetime

@@ -53,8 +53,9 @@ if errorlevel 1 (
 echo OK
 echo.
 
-REM AI Analysis ^& Summary
+REM AI Analysis ^& Summary (co the mat thoi gian)
 echo [4/4] AI phan tich va tom tat...
+echo (Co the mat 1-2 phut neu co nhieu jobs moi)
 python scripts/analyze_and_summarize.py
 if errorlevel 1 (
     echo WARNING: AI Analysis co loi, tiep tuc...
