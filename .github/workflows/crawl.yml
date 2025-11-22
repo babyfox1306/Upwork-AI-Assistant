@@ -38,7 +38,15 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add data/raw_jobs.jsonl data/feeds/ data/trends/
+          
+          # Add files nếu tồn tại
+          git add data/raw_jobs.jsonl
+          if [ -d "data/feeds" ] && [ "$(ls -A data/feeds 2>/dev/null)" ]; then
+            git add data/feeds/
+          fi
+          if [ -d "data/trends" ] && [ "$(ls -A data/trends 2>/dev/null)" ]; then
+            git add data/trends/
+          fi
           
           if ! git diff --staged --quiet; then
             git commit -m "Auto-update: New jobs and trends from feeds [skip ci]"

@@ -241,7 +241,8 @@ def main():
         
         results = []
         try:
-            overall_timeout = timeout_per_source * len(enabled_job_boards) // max_workers + 10
+            # Tăng overall timeout để đủ cho tất cả feeds
+            overall_timeout = (timeout_per_source * len(enabled_job_boards) // max_workers) + (timeout_per_source * 2)
             for future in as_completed(futures, timeout=overall_timeout):
                 try:
                     result = future.result(timeout=timeout_per_source)
