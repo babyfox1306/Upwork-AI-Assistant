@@ -4,9 +4,10 @@
 
 **GitHub Actions chạy tự động mỗi 15 phút:**
 
-1. Crawl RSS feeds từ job boards và tech blogs
-2. Lưu jobs mới vào `data/raw_jobs.jsonl`
-3. Commit và push lên GitHub repo
+1. Crawl RSS feeds từ job boards (5 feeds nhanh)
+2. Skip tech blogs trong CI để tiết kiệm thời gian
+3. Lưu jobs mới vào `data/raw_jobs.jsonl`
+4. Commit và push lên GitHub repo
 
 → **Bạn không cần làm gì**, GitHub tự động làm việc này.
 
@@ -18,22 +19,36 @@
 .\update.bat
 ```
 
-Script này sẽ:
+### Chế độ 1: Đầy đủ (mặc định)
 
 1. **Pull data mới** từ GitHub (jobs mà GitHub Actions đã crawl)
 2. **Sync ChromaDB** - Embedding jobs mới vào vector database
-3. **AI Analysis** - Phân tích jobs mới và generate summary
+   - Tự động loại bỏ duplicate
+   - Skip jobs không hợp lệ
+3. **AI Analysis** - Phân tích top 5 jobs mới và generate summary
+   - Chỉ phân tích nếu có jobs mới
+   - Skip summary nếu không có jobs mới
+
+**Thời gian**: ~1-2 phút (tùy số jobs mới)
+
+### Chế độ 2: Chỉ Sync (nhanh)
+
+1. **Sync ChromaDB** - Chỉ embedding jobs mới
+   - Không git pull
+   - Không AI analysis
+
+**Thời gian**: ~30 giây
 
 → **Chạy khi nào?** 
-- Mỗi ngày 1 lần (để có data mới)
-- Hoặc khi muốn xem jobs mới ngay
+- **Chế độ 1**: Mỗi ngày 1 lần (để có data mới + AI analysis)
+- **Chế độ 2**: Khi muốn sync nhanh, không cần AI analysis
 
 ## 📊 Data Flow
 
 ```
 GitHub Actions (mỗi 15 phút)
     ↓
-Crawl RSS Feeds
+Crawl RSS Feeds (job boards)
     ↓
 Lưu vào data/raw_jobs.jsonl
     ↓
@@ -41,32 +56,48 @@ Commit & Push lên GitHub
     ↓
 [Local] Bạn chạy update.bat
     ↓
-Pull data từ GitHub
+Chế độ 1: Pull data từ GitHub
     ↓
-Sync ChromaDB (embedding)
+Sync ChromaDB (embedding, loại duplicate)
     ↓
-AI Analysis & Summary
+AI Analysis (top 5 jobs mới)
+    ↓
+Daily Summary (nếu có jobs mới)
     ↓
 Sẵn sàng để chat với Lysa!
 ```
 
-## 🛠️ Scripts khác
+## 🛠️ Scripts
 
-### `crawl_local.bat`
-- Crawl thủ công ngay lập tức (không cần đợi GitHub Actions)
-- Chỉ dùng khi muốn crawl ngay, không đợi 15 phút
+### `update.bat`
+- **Chế độ 1**: Pull + Sync + AI Analysis (đầy đủ)
+- **Chế độ 2**: Chỉ Sync (nhanh)
+- Chạy khi muốn cập nhật data
 
 ### `chat.bat`
 - Mở Streamlit interface để chat với Lysa
 - Phân tích jobs, generate proposal, xem trends
+- Chạy khi muốn hỏi AI
+
+### `setup.bat`
+- Setup lần đầu: tạo venv, cài dependencies, pull Ollama model
+- Chỉ chạy 1 lần khi mới clone repo
+
+## ⚡ Tối ưu
+
+- **Duplicate Detection**: Tự động loại bỏ jobs trùng lặp
+- **Smart Filtering**: Skip jobs không hợp lệ
+- **Selective Analysis**: Chỉ phân tích top 5 jobs mới
+- **Skip Summary**: Bỏ qua nếu không có jobs mới
+- **CI Optimization**: Skip tech blogs trong GitHub Actions
 
 ## ⚡ Tóm tắt
 
 - **GitHub Actions**: Tự động crawl mỗi 15 phút → bạn không cần làm gì
-- **update.bat**: Pull data + sync + AI analysis → chạy khi muốn cập nhật
+- **update.bat (chế độ 1)**: Pull + sync + AI analysis → chạy mỗi ngày
+- **update.bat (chế độ 2)**: Chỉ sync → chạy khi muốn nhanh
 - **chat.bat**: Chat với Lysa → chạy khi muốn hỏi AI
 
 ---
 
 **Lưu ý**: Không cần crawl thủ công nữa vì GitHub Actions đã làm rồi. Chỉ cần `update.bat` để pull và xử lý data mới.
-
