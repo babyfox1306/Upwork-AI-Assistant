@@ -1,30 +1,34 @@
 @echo off
+chcp 65001 >nul
+setlocal enabledelayedexpansion
 echo ========================================
-echo   Cập Nhật Dữ Liệu - Update & Sync
+echo   Cap Nhat Du Lieu - Update ^& Sync
 echo ========================================
 echo.
-echo Chọn chế độ:
-echo   1. Đầy đủ (Git Pull + Sync + AI Analysis) - Mặc định
-echo   2. Chỉ Sync ChromaDB (nhanh, không git pull, không AI)
+echo Chon che do:
+echo   1. Day du (Git Pull + Sync + AI Analysis) - Mac dinh
+echo   2. Chi Sync ChromaDB (nhanh, khong git pull, khong AI)
 echo.
-set /p choice="Nhập lựa chọn (1 hoặc 2, Enter = 1): "
-if "%choice%"=="" set choice=1
-if "%choice%"=="2" goto sync_only
-if "%choice%"=="1" goto full_update
+set /p choice="Nhap lua chon (1 hoac 2, Enter = 1): "
+set "choice=!choice: =!"
+if "!choice!"=="" set choice=1
+if "!choice!"=="2" goto sync_only
+if "!choice!"=="1" goto full_update
+goto full_update
 
 :full_update
 echo.
 echo ========================================
-echo   Chế độ: Đầy đủ
+echo   Che do: Day du
 echo ========================================
 echo.
 
 REM Activate virtual environment
-echo [1/4] Kích hoạt môi trường ảo...
-call venv\Scripts\activate.bat
+echo [1/4] Kich hoat moi truong ao...
+call "venv\Scripts\activate.bat"
 if errorlevel 1 (
-    echo ERROR: Không tìm thấy môi trường ảo!
-    echo Chạy setup.bat trước nếu chưa setup.
+    echo ERROR: Khong tim thay moi truong ao!
+    echo Chay setup.bat truoc neu chua setup.
     pause
     exit /b 1
 )
@@ -32,50 +36,50 @@ echo OK
 echo.
 
 REM Pull from GitHub
-echo [2/4] Cập nhật từ GitHub (GitHub Actions đã crawl tự động)...
+echo [2/4] Cap nhat tu GitHub (GitHub Actions da crawl tu dong)...
 git pull origin main
 if errorlevel 1 (
-    echo WARNING: Git pull thất bại, tiếp tục...
+    echo WARNING: Git pull that bai, tiep tuc...
 )
 echo OK
 echo.
 
-REM Sync ChromaDB (embedding jobs mới)
-echo [3/4] Sync ChromaDB (embedding jobs mới)...
+REM Sync ChromaDB (embedding jobs moi)
+echo [3/4] Sync ChromaDB (embedding jobs moi)...
 python scripts/local_sync_and_rag.py
 if errorlevel 1 (
-    echo WARNING: Sync ChromaDB có lỗi, tiếp tục...
+    echo WARNING: Sync ChromaDB co loi, tiep tuc...
 )
 echo OK
 echo.
 
-REM AI Analysis & Summary
-echo [4/4] AI phân tích và tóm tắt...
+REM AI Analysis ^& Summary
+echo [4/4] AI phan tich va tom tat...
 python scripts/analyze_and_summarize.py
 if errorlevel 1 (
-    echo WARNING: AI Analysis có lỗi, tiếp tục...
+    echo WARNING: AI Analysis co loi, tiep tuc...
 )
 echo OK
 echo.
 
 echo ========================================
-echo   Hoàn thành! Dữ liệu đã được cập nhật.
-echo   Jobs mới đã được phân tích bởi AI.
+echo   Hoan thanh! Du lieu da duoc cap nhat.
+echo   Jobs moi da duoc phan tich boi AI.
 echo ========================================
 goto end
 
 :sync_only
 echo.
 echo ========================================
-echo   Chế độ: Chỉ Sync ChromaDB
+echo   Che do: Chi Sync ChromaDB
 echo ========================================
 echo.
 
 REM Activate virtual environment
-echo Kích hoạt môi trường ảo...
-call venv\Scripts\activate.bat
+echo Kich hoat moi truong ao...
+call "venv\Scripts\activate.bat"
 if errorlevel 1 (
-    echo ERROR: Không tìm thấy môi trường ảo!
+    echo ERROR: Khong tim thay moi truong ao!
     pause
     exit /b 1
 )
@@ -83,19 +87,19 @@ echo OK
 echo.
 
 REM Sync ChromaDB only
-echo Đang sync jobs vào ChromaDB...
-echo (Có thể mất vài phút nếu có nhiều jobs mới)
+echo Dang sync jobs vao ChromaDB...
+echo (Co the mat vai phut neu co nhieu jobs moi)
 echo.
 python scripts/local_sync_and_rag.py
 if errorlevel 1 (
-    echo WARNING: Sync ChromaDB có lỗi!
+    echo WARNING: Sync ChromaDB co loi!
     pause
     exit /b 1
 )
 
 echo.
 echo ========================================
-echo   Hoàn thành! ChromaDB đã được sync.
+echo   Hoan thanh! ChromaDB da duoc sync.
 echo ========================================
 goto end
 
