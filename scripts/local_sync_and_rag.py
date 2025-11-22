@@ -48,21 +48,42 @@ def git_pull():
 def load_jobs():
     """Load jobs từ raw_jobs.jsonl"""
     jobs = []
+    seen_ids = set()
+    
     if not raw_jobs_file.exists():
         print("⚠ Không tìm thấy raw_jobs.jsonl")
         return jobs
     
     with open(raw_jobs_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            if line.strip():
-                try:
-                    job = json.loads(line)
-                    jobs.append(job)
-                except Exception as e:
-                    print(f"⚠ Lỗi parse job: {e}")
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                job = json.loads(line)
+                job_id = job.get('job_id', '').strip()
+                
+                # Validate job
+                if not job_id:
+                    continue  # Skip jobs without ID
+                
+                # Skip duplicates trong file
+                if job_id in seen_ids:
                     continue
+                
+                seen_ids.add(job_id)
+                jobs.append(job)
+            except json.JSONDecodeError as e:
+                # Skip invalid JSON lines silently
+                continue
+            except Exception as e:
+                # Only print non-JSON errors
+                if "Expecting value" not in str(e):
+                    print(f"⚠ Lỗi parse job line {line_num}: {e}")
+                continue
     
-    print(f"✓ Load được {len(jobs)} jobs")
+    print(f"✓ Load được {len(jobs)} jobs (đã loại bỏ duplicate)")
     return jobs
 
 def init_chromadb():
@@ -100,13 +121,27 @@ def create_embeddings(texts, model_name='all-MiniLM-L6-v2'):
 
 def update_chromadb(collection, jobs, existing_ids):
     """Update ChromaDB với jobs mới"""
-    new_jobs = [job for job in jobs if job.get('job_id') not in existing_ids]
+    # Filter new jobs và loại bỏ duplicate trong batch
+    new_jobs = []
+    seen_in_batch = set()
+    
+    for job in jobs:
+        job_id = job.get('job_id', '').strip()
+        if not job_id:
+            continue  # Skip jobs without ID
+        
+        # Skip nếu đã có trong DB hoặc đã thấy trong batch này
+        if job_id in existing_ids or job_id in seen_in_batch:
+            continue
+        
+        seen_in_batch.add(job_id)
+        new_jobs.append(job)
     
     if not new_jobs:
         print("✓ Không có job mới cần update")
         return 0
     
-    print(f"✓ Tìm thấy {len(new_jobs)} jobs mới")
+    print(f"✓ Tìm thấy {len(new_jobs)} jobs mới (đã loại bỏ duplicate)")
     
     # Tạo text để embed (title + description)
     texts = []
@@ -114,9 +149,13 @@ def update_chromadb(collection, jobs, existing_ids):
     metadatas = []
     
     for job in new_jobs:
+        job_id = job.get('job_id', '').strip()
+        if not job_id:
+            continue  # Double check
+        
         text = f"{job.get('title', '')} {job.get('description', '')}"
         texts.append(text)
-        ids.append(job.get('job_id', ''))
+        ids.append(job_id)
         
         metadata = {
             'title': job.get('title', '')[:200],  # Limit length
@@ -125,23 +164,45 @@ def update_chromadb(collection, jobs, existing_ids):
             'client_country': job.get('client_country', ''),
             'category': job.get('category', ''),
             'link': job.get('link', ''),
+            'source': job.get('source', 'Unknown'),
             'created_at': job.get('created_at', '')
         }
         metadatas.append(metadata)
     
+    if not ids:
+        print("⚠ Không có jobs hợp lệ để add")
+        return 0
+    
     # Create embeddings
     embeddings = create_embeddings(texts)
     
-    # Add to ChromaDB
-    collection.add(
-        ids=ids,
-        embeddings=embeddings.tolist(),
-        metadatas=metadatas,
-        documents=texts
-    )
-    
-    print(f"✓ Đã thêm {len(new_jobs)} jobs vào ChromaDB")
-    return len(new_jobs)
+    # Add to ChromaDB (batch add để tránh duplicate)
+    try:
+        collection.add(
+            ids=ids,
+            embeddings=embeddings.tolist(),
+            metadatas=metadatas,
+            documents=texts
+        )
+        print(f"✓ Đã thêm {len(ids)} jobs vào ChromaDB")
+        return len(ids)
+    except Exception as e:
+        print(f"⚠ Lỗi khi add vào ChromaDB: {e}")
+        # Try add từng cái một nếu batch fail
+        added = 0
+        for i, job_id in enumerate(ids):
+            try:
+                collection.add(
+                    ids=[job_id],
+                    embeddings=[embeddings[i].tolist()],
+                    metadatas=[metadatas[i]],
+                    documents=[texts[i]]
+                )
+                added += 1
+            except:
+                continue
+        print(f"✓ Đã thêm {added}/{len(ids)} jobs vào ChromaDB (một số có thể duplicate)")
+        return added
 
 def main():
     """Main function"""
