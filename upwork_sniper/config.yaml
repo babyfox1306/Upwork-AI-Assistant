@@ -1,0 +1,30 @@
+browser:
+  headless: false
+  timeout_ms: 25000
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
+  cookies_path: "upwork_sniper/cookies.json"
+  retry_attempts: 3
+  backoff_seconds: 20
+
+auth:
+  login_url: "https://www.upwork.com/ab/account-security/login"
+
+search:
+  page_url: "https://www.upwork.com/nx/search/jobs"
+  api_url: "https://www.upwork.com/ab/jobs/search/api"
+  sort: "recency"
+  per_page: 50
+  max_pages: 1
+  keywords:
+    - "python scraping"
+    - "web automation"
+    - "shopify api"
+  interval_seconds: 45
+
+output:
+  path: "data/upwork_jobs.jsonl"
+
+logging:
+  level: "INFO"
+
+
