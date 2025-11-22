@@ -30,7 +30,7 @@ jobs:
           # concurrent.futures is built-in Python 3.2+, no need to install
 
       - name: Crawl Jobs & Trends from Multiple Sources
-        timeout-minutes: 3
+        timeout-minutes: 5
         run: |
           python scripts/crawl_multi_source.py
 

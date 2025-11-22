@@ -23,8 +23,8 @@ with open(config_path, 'r', encoding='utf-8') as f:
 sources = config.get('sources', {})
 keywords = config.get('search_keywords', [])
 crawl_config = config.get('crawl', {})
-timeout_per_source = crawl_config.get('timeout_per_source', 10)
-max_workers = crawl_config.get('max_workers', 5)
+timeout_per_source = crawl_config.get('timeout_per_source', 5)
+max_workers = crawl_config.get('max_workers', 8)
 
 # Load existing jobs
 existing_job_ids = set()
@@ -277,9 +277,16 @@ def main():
                 print(f"[{index}/{len(enabled_job_boards)}] {name}... ✓ {len(jobs)} jobs")
     
     # Crawl tech blogs (trends) - chỉ lưu metadata, không phải jobs
+    # Skip trong GitHub Actions để tiết kiệm thời gian
+    skip_tech_blogs = crawl_config.get('skip_tech_blogs_in_ci', False)
+    is_ci = os.getenv('CI', 'false').lower() == 'true' or os.getenv('GITHUB_ACTIONS', 'false').lower() == 'true'
+    
     tech_blogs = sources.get('tech_blogs', [])
     enabled_blogs = [f for f in tech_blogs if f.get('enabled', False)]
-    if enabled_blogs:
+    
+    if skip_tech_blogs and is_ci:
+        print(f"\n⏭️  Skipping {len(enabled_blogs)} tech blog feeds (CI mode - chỉ crawl job boards)")
+    elif enabled_blogs:
         print(f"\n📚 Crawling {len(enabled_blogs)} tech blog feeds (trends)...")
         feeds_dir = Path(__file__).parent.parent / 'data' / 'feeds'
         feeds_dir.mkdir(parents=True, exist_ok=True)

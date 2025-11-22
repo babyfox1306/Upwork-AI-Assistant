@@ -201,7 +201,8 @@ query:
 
 # Crawl Settings
 crawl:
-  timeout_per_source: 10  # seconds
-  max_workers: 5  # parallel threads
-  retry_attempts: 2
+  timeout_per_source: 5  # seconds (giảm để nhanh hơn)
+  max_workers: 8  # parallel threads (tăng để nhanh hơn)
+  retry_attempts: 1  # giảm retry để nhanh hơn
   interval_minutes: 15  # GitHub Actions chạy mỗi 15 phút
+  skip_tech_blogs_in_ci: true  # Skip tech blogs trong GitHub Actions để nhanh hơn
