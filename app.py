@@ -40,16 +40,21 @@ def load_config():
 
 @st.cache_resource
 def init_chromadb():
-    """Khởi tạo ChromaDB"""
+    """Khởi tạo ChromaDB - tự động tạo collection nếu chưa có"""
     config, _ = load_config()
     chromadb_config = config['chromadb']
     persist_dir = Path(__file__).parent / chromadb_config['persist_directory']
+    persist_dir.mkdir(parents=True, exist_ok=True)
     
     client = chromadb.PersistentClient(
         path=str(persist_dir),
         settings=Settings(anonymized_telemetry=False)
     )
-    collection = client.get_collection(chromadb_config['collection_name'])
+    # Dùng get_or_create_collection để tự động tạo nếu chưa có
+    collection = client.get_or_create_collection(
+        name=chromadb_config['collection_name'],
+        metadata={"hnsw:space": "cosine"}
+    )
     return collection
 
 def search_jobs(collection, query_text, top_k=10):
@@ -205,8 +210,16 @@ if "conversation_history" not in st.session_state:
 # Load ChromaDB
 try:
     collection = init_chromadb()
+    # Check if collection is empty
+    try:
+        count = collection.count()
+        if count == 0:
+            st.warning("⚠ ChromaDB collection trống. Hãy chạy `update.bat` để sync jobs vào database.")
+    except:
+        pass
 except Exception as e:
     st.error(f"Lỗi khởi tạo ChromaDB: {e}")
+    st.info("💡 **Giải pháp:** Chạy `update.bat` để tạo collection và sync jobs vào ChromaDB.")
     st.stop()
 
 # Display chat history
