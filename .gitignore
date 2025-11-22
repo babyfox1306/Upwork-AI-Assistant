@@ -12,6 +12,11 @@ data/chroma_db/
 *.db
 *.sqlite
 
+# Feed data (gitignore trends và feeds để tránh commit quá nhiều)
+# data/feeds/
+# data/trends/
+# data/analyses/
+
 # IDE
 .vscode/
 .idea/

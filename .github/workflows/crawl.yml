@@ -1,4 +1,4 @@
-name: Crawl Upwork RSS Jobs
+name: Feed Aggregator - Safe Job & Trend Crawler
 
 on:
   schedule:
@@ -26,11 +26,11 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install feedparser pyyaml requests
+          pip install feedparser pyyaml requests beautifulsoup4
           # concurrent.futures is built-in Python 3.2+, no need to install
 
-      - name: Crawl Jobs from Multiple Sources
-        timeout-minutes: 2
+      - name: Crawl Jobs & Trends from Multiple Sources
+        timeout-minutes: 3
         run: |
           python scripts/crawl_multi_source.py
 
@@ -38,10 +38,10 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add data/raw_jobs.jsonl
+          git add data/raw_jobs.jsonl data/feeds/ data/trends/
           
           if ! git diff --staged --quiet; then
-            git commit -m "Auto-update: New jobs from RSS [skip ci]"
+            git commit -m "Auto-update: New jobs and trends from feeds [skip ci]"
             git push
           else
             echo "No changes to commit"

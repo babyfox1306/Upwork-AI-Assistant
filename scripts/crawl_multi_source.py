@@ -22,6 +22,9 @@ with open(config_path, 'r', encoding='utf-8') as f:
 
 sources = config.get('sources', {})
 keywords = config.get('search_keywords', [])
+crawl_config = config.get('crawl', {})
+timeout_per_source = crawl_config.get('timeout_per_source', 10)
+max_workers = crawl_config.get('max_workers', 5)
 
 # Load existing jobs
 existing_job_ids = set()
@@ -210,10 +213,10 @@ def main():
     
     all_jobs = []
     
-    # Crawl RSS feeds - chạy song song với timeout
-    rss_feeds = sources.get('rss_feeds', [])
-    enabled_feeds = [f for f in rss_feeds if f.get('enabled', False)]
-    print(f"\n📡 Crawling {len(enabled_feeds)} RSS feeds (parallel, timeout 5s each)...")
+    # Crawl job boards RSS
+    job_boards = sources.get('job_boards', [])
+    enabled_job_boards = [f for f in job_boards if f.get('enabled', False)]
+    print(f"\n📡 Crawling {len(enabled_job_boards)} job board feeds (parallel, timeout {timeout_per_source}s each)...")
     
     def crawl_with_timeout(feed_config, index, total):
         """Crawl với timeout"""
@@ -223,18 +226,19 @@ def main():
         except Exception as e:
             return (index, feed_config['name'], [], str(e))
     
-    # Chạy song song tối đa 5 threads
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    # Chạy song song
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(crawl_with_timeout, feed, i+1, len(enabled_feeds)): feed 
-            for i, feed in enumerate(enabled_feeds)
+            executor.submit(crawl_with_timeout, feed, i+1, len(enabled_job_boards)): feed 
+            for i, feed in enumerate(enabled_job_boards)
         }
         
         results = []
         try:
-            for future in as_completed(futures, timeout=30):  # Tổng timeout 30s
+            overall_timeout = timeout_per_source * len(enabled_job_boards) // max_workers + 10
+            for future in as_completed(futures, timeout=overall_timeout):
                 try:
-                    result = future.result(timeout=5)
+                    result = future.result(timeout=timeout_per_source)
                     results.append(result)
                 except Exception as e:
                     feed_name = futures[future]['name']
@@ -253,10 +257,42 @@ def main():
         results.sort(key=lambda x: x[0])
         for index, name, jobs, error in results:
             if error:
-                print(f"[{index}/{len(enabled_feeds)}] {name}... ✗ {error}")
+                print(f"[{index}/{len(enabled_job_boards)}] {name}... ✗ {error}")
             else:
                 all_jobs.extend(jobs)
-                print(f"[{index}/{len(enabled_feeds)}] {name}... ✓ {len(jobs)} jobs")
+                print(f"[{index}/{len(enabled_job_boards)}] {name}... ✓ {len(jobs)} jobs")
+    
+    # Crawl tech blogs (trends) - chỉ lưu metadata, không phải jobs
+    tech_blogs = sources.get('tech_blogs', [])
+    enabled_blogs = [f for f in tech_blogs if f.get('enabled', False)]
+    if enabled_blogs:
+        print(f"\n📚 Crawling {len(enabled_blogs)} tech blog feeds (trends)...")
+        feeds_dir = Path(__file__).parent.parent / 'data' / 'feeds'
+        feeds_dir.mkdir(parents=True, exist_ok=True)
+        
+        for i, blog in enumerate(enabled_blogs, 1):
+            print(f"[{i}/{len(enabled_blogs)}] {blog['name']}...", end=' ', flush=True)
+            try:
+                feed = feedparser.parse(blog['url'])
+                if feed.entries:
+                    # Lưu trends vào file riêng
+                    trends_file = feeds_dir / f"trends_{datetime.utcnow().strftime('%Y%m%d')}.jsonl"
+                    with open(trends_file, 'a', encoding='utf-8') as f:
+                        for entry in feed.entries[:5]:  # Lấy 5 bài mới nhất
+                            trend_data = {
+                                'title': entry.get('title', ''),
+                                'link': entry.get('link', ''),
+                                'summary': entry.get('summary', '')[:500],
+                                'source': blog['name'],
+                                'published': entry.get('published', ''),
+                                'crawled_at': datetime.utcnow().isoformat()
+                            }
+                            f.write(json.dumps(trend_data, ensure_ascii=False) + '\n')
+                    print(f"✓ {len(feed.entries)} articles")
+                else:
+                    print("✓ 0 articles")
+            except Exception as e:
+                print(f"✗ {str(e)[:50]}")
     
     # Crawl API sources
     api_sources = sources.get('api_sources', [])
@@ -271,6 +307,9 @@ def main():
                 print(f"✓ {len(jobs)} jobs")
             except Exception as e:
                 print(f"✗ {str(e)[:50]}")
+    
+    # TODO: HackerNews "Who is Hiring" parser (cần BeautifulSoup)
+    # Có thể implement sau nếu cần
     
     # Save jobs
     print(f"\n💾 Đang lưu {len(all_jobs)} jobs...")
