@@ -24,7 +24,7 @@ sources:
       category: "jobs"
     - name: "Remote.co - All Jobs"
       url: "https://remote.co/remote-jobs/feed/"
-      enabled: true
+      enabled: false  # Tắt tạm vì chậm/timeout
       category: "jobs"
     - name: "RemoteOK - Dev Jobs"
       url: "https://remoteok.io/remote-dev-jobs.rss"
@@ -32,7 +32,7 @@ sources:
       category: "jobs"
     - name: "JustRemote - All Jobs"
       url: "https://justremote.co/remote-jobs/feed"
-      enabled: true
+      enabled: false  # Tắt vì parse error
       category: "jobs"
     - name: "Jobspresso - Remote Jobs"
       url: "https://jobspresso.co/feed/"
@@ -44,7 +44,7 @@ sources:
       category: "jobs"
     - name: "FlexJobs RSS"
       url: "https://www.flexjobs.com/rss/jobs.xml"
-      enabled: true
+      enabled: false  # Tắt tạm vì chậm/timeout
       category: "jobs"
     - name: "StackOverflow Jobs"
       url: "https://stackoverflow.com/jobs/feed"
