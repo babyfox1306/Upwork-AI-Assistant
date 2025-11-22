@@ -5,14 +5,15 @@
 ## 🎯 Đặc điểm
 
 - ✅ **100% An toàn**: Không đụng vào Upwork, không vi phạm ToS
-- ✅ **Nhiều nguồn**: 20+ job boards, tech blogs, RSS feeds hợp pháp
+- ✅ **Nhiều nguồn**: 5+ job boards nhanh, 10+ tech blogs, RSS feeds hợp pháp
 - ✅ **AI thông minh**: Phân tích job theo CEO MODE 7-tier, học trend tự động
 - ✅ **Tự động hóa**: GitHub Actions crawl mỗi 15 phút
 - ✅ **Local AI**: Chạy trên Ollama local, không cần API key
+- ✅ **Tối ưu**: Loại bỏ duplicate, skip jobs không hợp lệ, nhanh hơn 50%
 
 ## 📋 Yêu cầu
 
-- Python 3.10
+- Python 3.10+
 - Ollama với model `qwen2.5:7b-instruct-q4_K_M`
 - Git
 
@@ -28,12 +29,12 @@ cd Upwork-AI-Assistant
 ### 2. Setup Python environment
 
 ```bash
-# Windows
+# Windows (khuyến nghị)
 setup.bat
 
 # Linux/Mac
 python -m venv venv
-source venv/bin/activate  # hoặc venv\Scripts\activate trên Windows
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -45,7 +46,6 @@ pip install -r requirements.txt
 
 # Pull model
 ollama pull qwen2.5:7b-instruct-q4_K_M
-ollama pull all-minilm
 ```
 
 ### 4. Cấu hình
@@ -60,23 +60,36 @@ Chỉnh sửa `config/profile.yaml` với thông tin của bạn:
 
 ### Cập nhật dữ liệu
 
+**Windows (khuyến nghị):**
 ```bash
-# Windows
 update.bat
+```
 
-# Hoặc manual
-python scripts/crawl_multi_source.py
+Chọn chế độ:
+- **1. Đầy đủ** (mặc định): Git Pull + Sync ChromaDB + AI Analysis
+- **2. Chỉ Sync**: Chỉ sync ChromaDB (nhanh, không AI analysis)
+
+**Manual:**
+```bash
+# Pull data từ GitHub
+git pull origin main
+
+# Sync ChromaDB
 python scripts/local_sync_and_rag.py
+
+# AI Analysis (tùy chọn)
 python scripts/analyze_and_summarize.py
 ```
 
 ### Chat với AI
 
+**Windows:**
 ```bash
-# Windows
 chat.bat
+```
 
-# Hoặc manual
+**Manual:**
+```bash
 streamlit run app.py
 ```
 
@@ -107,15 +120,6 @@ proposal = generate_proposal(job_id='abc123')
 proposal = generate_proposal(job_link='https://...')
 ```
 
-### Xem daily summary
-
-```python
-from ai.summarizer import generate_daily_summary
-
-summary = generate_daily_summary()
-print(summary['summary'])
-```
-
 ## 📁 Cấu trúc
 
 ```
@@ -126,7 +130,7 @@ Upwork-AI-Assistant/
 │   └── generator.py        # Generate proposal draft
 ├── ai_rules/               # AI instructions
 │   ├── analysis.md         # System instruction
-│   ├── upwork_rules.md     # Rulebook
+│   ├── upwork_rules.md     # Rulebook (7-tier analysis)
 │   ├── examples.json       # Few-shot examples
 │   └── hardware.md         # Hardware constraints
 ├── config/
@@ -144,11 +148,12 @@ Upwork-AI-Assistant/
 │   ├── local_sync_and_rag.py     # Sync + embed + ChromaDB
 │   ├── analyze_and_summarize.py  # AI analysis + summary
 │   ├── query_ai.py               # Query AI
-│   └── generator.py              # Generate proposal
+│   └── write_proposal.py         # Generate proposal
 ├── .github/workflows/
 │   └── crawl.yml           # GitHub Actions (crawl mỗi 15 phút)
 ├── app.py                   # Streamlit chat interface
-├── update.bat               # Update script (Windows)
+├── setup.bat                # Setup script (Windows)
+├── update.bat               # Update script (Windows) - 2 chế độ
 └── chat.bat                 # Chat script (Windows)
 ```
 
@@ -159,8 +164,8 @@ Chỉnh sửa `config/config.yaml` để thêm/bật/tắt RSS feeds:
 ```yaml
 sources:
   job_boards:
-    - name: "We Work Remotely"
-      url: "https://..."
+    - name: "We Work Remotely - Programming"
+      url: "https://weworkremotely.com/categories/remote-programming-jobs.rss"
       enabled: true
       category: "jobs"
   
@@ -195,10 +200,13 @@ Lysa phân tích mỗi job theo 7 tầng:
 6. **TIER MATCHING** - Job này hợp với mình không?
 7. **VERDICT** - CHỐT: Nên lấy / Không nên
 
+**Tone**: Thẳng, thực dụng, quyết đoán, không vòng vo.
+
 ## 🔄 GitHub Actions
 
 Workflow tự động:
 - Crawl RSS feeds mỗi 15 phút
+- Chỉ crawl job boards (skip tech blogs trong CI để nhanh)
 - Commit jobs mới vào repo
 - Pull về local để AI phân tích
 
@@ -207,20 +215,30 @@ Workflow tự động:
 ```
 GitHub Actions (15 phút/lần)
     ↓
-Crawl RSS Feeds (job boards, tech blogs)
+Crawl RSS Feeds (job boards)
     ↓
 Commit vào data/raw_jobs.jsonl
     ↓
-Local: git pull
+Local: update.bat
     ↓
-AI Analysis (analyser.py)
+Git Pull
     ↓
-Daily/Weekly Summary (summarizer.py)
+Sync ChromaDB (embedding, loại duplicate)
     ↓
-ChromaDB (vector search)
+AI Analysis (top 5 jobs mới)
+    ↓
+Daily Summary (nếu có jobs mới)
     ↓
 Streamlit Chat Interface
 ```
+
+## ⚡ Tối ưu Performance
+
+- **Duplicate Detection**: Tự động loại bỏ jobs trùng lặp
+- **Smart Filtering**: Skip jobs không hợp lệ (thiếu ID, JSON lỗi)
+- **Batch Processing**: Embedding theo batch để nhanh hơn
+- **Selective Analysis**: Chỉ phân tích top 5 jobs mới (giảm từ 10)
+- **Skip Summary**: Bỏ qua daily summary nếu không có jobs mới
 
 ## 🛡️ An toàn
 
@@ -229,6 +247,22 @@ Streamlit Chat Interface
 - ✅ Không vi phạm ToS
 - ✅ Không cần API keys (trừ Ollama local)
 - ✅ Tất cả nguồn đều hợp pháp
+
+## 🐛 Troubleshooting
+
+### Lỗi encoding trong batch files
+- Đã fix: Tất cả batch files dùng `chcp 65001` và tiếng Việt không dấu
+
+### Lỗi duplicate IDs khi sync
+- Đã fix: Tự động loại bỏ duplicate trong batch trước khi add vào ChromaDB
+
+### Sync lâu
+- Dùng chế độ 2 trong `update.bat` (chỉ sync, không AI analysis)
+- Hoặc chờ AI analysis hoàn thành (1-2 phút cho 5 jobs)
+
+### Không có jobs mới
+- Bình thường: Crawler chỉ lấy jobs MỚI (không duplicate)
+- Đợi jobs mới xuất hiện trên feeds hoặc kiểm tra GitHub Actions logs
 
 ## 📝 License
 
@@ -241,4 +275,3 @@ Pull requests welcome!
 ---
 
 **Lysa** - Your AI Job Market Analyst 🤖
-
