@@ -110,9 +110,9 @@ def normalize_job(entry, source_name, source_type):
     return job_data
 
 def crawl_rss_feed(feed_config):
-    """Crawl từ RSS feed"""
+    """Crawl từ RSS feed, return (jobs, error_msg)"""
     if not feed_config.get('enabled', False):
-        return []
+        return ([], None)
     
     url = feed_config['url']
     name = feed_config['name']
@@ -121,21 +121,27 @@ def crawl_rss_feed(feed_config):
         # Add User-Agent để tránh bị block
         import urllib.request
         req = urllib.request.Request(url)
-        req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+        req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         
         feed = feedparser.parse(url)
         
         status = feed.get('status', 200)
+        error_msg = None
+        
         if status not in [200, 301, 302]:  # Allow redirects
-            print(f"⚠ RSS feed {name} status {status}")
+            error_msg = f"HTTP {status}"
+            return ([], error_msg)
+        
+        # Check bozo (parsing errors)
+        if hasattr(feed, 'bozo') and feed.bozo:
             if hasattr(feed, 'bozo_exception'):
-                print(f"   Error: {feed.bozo_exception}")
-            return []
+                error_msg = f"Parse error: {str(feed.bozo_exception)[:40]}"
+            else:
+                error_msg = "Parse error"
+            return ([], error_msg)
         
         if not feed.entries:
-            return []
-        
-        # Return count, don't print here (will print in main)
+            return ([], None)
         
         jobs = []
         for entry in feed.entries:
@@ -144,10 +150,10 @@ def crawl_rss_feed(feed_config):
                 jobs.append(job)
                 existing_job_ids.add(job['job_id'])
         
-        return jobs
+        return (jobs, None)
     
     except Exception as e:
-        raise Exception(f"{name}: {str(e)[:50]}")
+        return ([], str(e)[:50])
 
 def crawl_api_source(api_config):
     """Crawl từ API"""
@@ -221,10 +227,10 @@ def main():
     def crawl_with_timeout(feed_config, index, total):
         """Crawl với timeout"""
         try:
-            jobs = crawl_rss_feed(feed_config)
-            return (index, feed_config['name'], jobs, None)
+            jobs, error_msg = crawl_rss_feed(feed_config)
+            return (index, feed_config['name'], jobs, error_msg)
         except Exception as e:
-            return (index, feed_config['name'], [], str(e))
+            return (index, feed_config['name'], [], str(e)[:50])
     
     # Chạy song song
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -253,9 +259,17 @@ def main():
                     except:
                         pass
         
-        # Sort theo index và print
-        results.sort(key=lambda x: x[0])
-        for index, name, jobs, error in results:
+        # Sort theo index và print (loại bỏ duplicate)
+        results_dict = {}
+        for result in results:
+            index, name, jobs, error = result
+            # Chỉ giữ kết quả đầu tiên nếu có duplicate
+            if index not in results_dict:
+                results_dict[index] = result
+        
+        # Sort và print
+        sorted_results = sorted(results_dict.values(), key=lambda x: x[0])
+        for index, name, jobs, error in sorted_results:
             if error:
                 print(f"[{index}/{len(enabled_job_boards)}] {name}... ✗ {error}")
             else:
