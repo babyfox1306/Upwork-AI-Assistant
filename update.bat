@@ -5,7 +5,7 @@ echo ========================================
 echo.
 
 REM Activate virtual environment
-echo [1/3] Kích hoạt môi trường ảo...
+echo [1/4] Kích hoạt môi trường ảo...
 call venv\Scripts\activate.bat
 if errorlevel 1 (
     echo ERROR: Không tìm thấy môi trường ảo!
@@ -17,7 +17,7 @@ echo OK
 echo.
 
 REM Pull from GitHub
-echo [2/3] Cập nhật từ GitHub...
+echo [2/4] Cập nhật từ GitHub (GitHub Actions đã crawl tự động)...
 git pull origin main
 if errorlevel 1 (
     echo WARNING: Git pull thất bại, tiếp tục...
@@ -25,12 +25,11 @@ if errorlevel 1 (
 echo OK
 echo.
 
-REM Crawl và sync
-echo [3/4] Crawl jobs và sync ChromaDB...
-python scripts/crawl_multi_source.py
+REM Sync ChromaDB (embedding jobs mới)
+echo [3/4] Sync ChromaDB (embedding jobs mới)...
 python scripts/local_sync_and_rag.py
 if errorlevel 1 (
-    echo WARNING: Crawl/Sync có lỗi, tiếp tục...
+    echo WARNING: Sync ChromaDB có lỗi, tiếp tục...
 )
 echo OK
 echo.
