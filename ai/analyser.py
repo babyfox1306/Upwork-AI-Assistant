@@ -55,105 +55,52 @@ def analyse_job(job_data: Dict) -> Dict:
     """
     profile = load_profile()
     
-    # Build prompt với tư duy logic và phân tích sâu
-    prompt = f"""Bạn là Lysa - AI phân tích job chuyên nghiệp, có tư duy logic và phân tích sâu. Bạn hỗ trợ Tuấn Anh (freelancer).
+    # Build prompt ngắn gọn hơn để nhanh hơn
+    profile_summary = f"Tuấn Anh: {profile.get('title', 'Python Developer')}, {profile.get('experience', 0)} năm exp, skills: {', '.join(profile.get('skills', [])[:5])}"
+    
+    prompt = f"""Phân tích job này cho Tuấn Anh (freelancer Python/Scraping/Automation).
 
-TƯ DUY PHÂN TÍCH:
-- Suy nghĩ đa chiều: xem xét job từ nhiều góc độ (client, market, competition, skills match)
-- Logic rõ ràng: mỗi nhận định đều có lý do cụ thể, không nói chung chung
-- Phân tích sâu: không chỉ nhìn bề ngoài, mà đi sâu vào intent, risk, opportunity
-- Thực tế: dựa trên data và experience, không đoán mò
-- Cân nhắc trade-offs: không chỉ thấy lợi mà còn thấy hại, không chỉ thấy cơ hội mà còn thấy rủi ro
+Profile: {profile_summary}
 
-{analysis_rules}
-
-{upwork_rules}
-
-{hardware_rules}
-
-{profile_context}
-
-PROFILE FREELANCER (Tuấn Anh - freelancer thật):
-{json.dumps(profile, ensure_ascii=False, indent=2)}
-
-QUAN TRỌNG: Profile trên là của Tuấn Anh (freelancer thật), không phải "CEO Lysa". Bạn phải phân tích jobs dựa trên skills/tech stack thực tế của Tuấn Anh.
-
-JOB CẦN PHÂN TÍCH:
+Job:
 Title: {job_data.get('title', 'N/A')}
-Description: {job_data.get('description', 'N/A')[:800]}
+Description: {job_data.get('description', 'N/A')[:600]}
 Budget: {job_data.get('budget', 'N/A')}
-Source: {job_data.get('source', 'N/A')}
-Link: {job_data.get('link', 'N/A')}
 
-Hãy phân tích job này theo đúng 7 tầng CEO MODE:
-1. INTENT ANALYSIS
-2. TECH FEASIBILITY
-3. SCOPE CREEP DETECTION
-4. ROI CHECK REAL
-5. COMPETITION INTEL
-6. TIER MATCHING
-7. VERDICT
+Phân tích 7 tầng:
+1. INTENT - Client muốn gì?
+2. TECH FEASIBILITY - Match skills không? (HIGH/MED/LOW)
+3. SCOPE CREEP - Có risk phình scope không?
+4. ROI - Lời bao nhiêu?
+5. COMPETITION - Nhiều người apply không?
+6. TIER - Tier 1-5, phù hợp không?
+7. VERDICT - NÊN LẤY / KHÔNG NÊN LẤY
 
-VÍ DỤ PHÂN TÍCH (Few-shot learning):
-
-Example 1 - Job phù hợp:
-Job: "Python Web Scraper - Extract data from e-commerce sites"
-{{
-  "intent_analysis": "Client cần scrape data từ e-commerce, extract product info, prices. Rõ ràng, không mơ hồ.",
-  "tech_feasibility": "HIGH - Match 100% với skills: Python, Requests/BeautifulSoup, data extraction",
-  "scope_creep_detection": "Ít risk - chỉ scrape, không có yêu cầu thêm ML/AI phức tạp",
-  "roi_check_real": "Budget $500-1000, thời gian 1-2 tuần. ROI tốt cho Tuấn Anh (rate 15$/h)",
-  "competition_intel": "Có thể có nhiều proposals, nhưng demo-first approach sẽ nổi bật",
-  "tier_matching": "Tier 2-3 - Mid-level, phù hợp với 8 năm exp của Tuấn Anh",
-  "verdict": "NÊN LẤY",
-  "score": 85,
-  "keywords": ["Python", "Web Scraping", "Data Extraction"],
-  "category": "Web Scraping"
-}}
-
-Example 2 - Job không phù hợp:
-Job: "Senior React Developer - Build complex SPA with Redux"
-{{
-  "intent_analysis": "Client cần React/Redux developer, frontend focus",
-  "tech_feasibility": "LOW - Tuấn Anh không có React trong tech stack, chủ yếu Python backend/scraping",
-  "scope_creep_detection": "Medium risk - có thể yêu cầu thêm TypeScript, testing",
-  "roi_check_real": "Budget cao nhưng không match skills",
-  "competition_intel": "Nhiều React devs sẽ apply, Tuấn Anh không có lợi thế",
-  "tier_matching": "Tier 1 - Senior level nhưng không match tech stack",
-  "verdict": "KHÔNG NÊN LẤY",
-  "score": 25,
-  "keywords": ["React", "Frontend", "Redux"],
-  "category": "Frontend"
-}}
-
-QUAN TRỌNG: BẮT BUỘC trả về CHỈ JSON, không có text, không có markdown, không có giải thích. Bắt đầu bằng {{ và kết thúc bằng }}.
-
-Trả lời CHỈ JSON (copy-paste format này và fill vào):
+Trả về CHỈ JSON (bắt đầu {{, kết thúc }}):
 {{
   "intent_analysis": "...",
-  "tech_feasibility": "HIGH/MEDIUM/LOW - [lý do cụ thể]",
+  "tech_feasibility": "HIGH/MEDIUM/LOW - lý do",
   "scope_creep_detection": "...",
   "roi_check_real": "...",
   "competition_intel": "...",
-  "tier_matching": "Tier 1-5 - [phân tích]",
+  "tier_matching": "Tier X - ...",
   "verdict": "NÊN LẤY / KHÔNG NÊN LẤY",
   "score": 0-100,
-  "keywords": ["keyword1", "keyword2"],
-  "category": "category_name"
-}}
-"""
+  "keywords": ["kw1", "kw2"],
+  "category": "category"
+}}"""
 
     try:
-        # Sử dụng Client với timeout để tránh hang
+        # Sử dụng Client với timeout ngắn hơn để tránh hang
         from ollama import Client
-        client = Client(host=ollama_base_url, timeout=90.0)  # 90s timeout
+        client = Client(host=ollama_base_url, timeout=45.0)  # Giảm xuống 45s
         
         response = client.chat(
             model=ollama_model,
             messages=[
                 {
                     'role': 'system',
-                    'content': 'Bạn là Lysa - AI phân tích job chuyên nghiệp, có tư duy logic, phân tích sâu, thực tế, không vòng vo. Bạn suy nghĩ đa chiều và đưa ra nhận định có lý do rõ ràng.'
+                    'content': 'Bạn là Lysa - AI phân tích job. Trả về CHỈ JSON, không text khác.'
                 },
                 {
                     'role': 'user',
@@ -161,9 +108,10 @@ Trả lời CHỈ JSON (copy-paste format này và fill vào):
                 }
             ],
             options={
-                'temperature': 0.5,  # Tăng lên 0.5 để có tư duy linh hoạt hơn nhưng vẫn logic
-                'num_predict': 2000,
-                'top_p': 0.85,  # Cho phép đa dạng trong phân tích
+                'temperature': 0.3,  # Giảm xuống 0.3 để nhanh hơn và chính xác hơn
+                'num_predict': 800,  # Giảm xuống 800 để nhanh hơn
+                'top_p': 0.8,
+                'top_k': 40,  # Thêm top_k để nhanh hơn
             }
         )
         
