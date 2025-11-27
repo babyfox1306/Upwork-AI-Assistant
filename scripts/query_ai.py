@@ -230,6 +230,12 @@ def load_ai_rules():
         with open(hardware_file, 'r', encoding='utf-8') as f:
             rules['hardware'] = f.read()
     
+    # Load profile context
+    profile_context_file = rules_dir / 'profile_context.md'
+    if profile_context_file.exists():
+        with open(profile_context_file, 'r', encoding='utf-8') as f:
+            rules['profile_context'] = f.read()
+    
     return rules
 
 def build_prompt(jobs, profile):
@@ -239,10 +245,13 @@ def build_prompt(jobs, profile):
     ai_rules = load_ai_rules()
     
     profile_text = f"""
-Profile CEO:
+Profile Tuấn Anh (freelancer):
+- Name: {profile.get('name', 'Tuấn Anh')}
+- Title: {profile.get('title', 'Python Developer')}
 - Skills: {', '.join(profile.get('skills', []))}
 - Experience: {profile.get('experience', 0)} năm
 - Rate: {profile.get('rate', '')}
+- Work Style: {profile.get('work_style', 'Demo-first')}
 """
     
     jobs_text = ""
@@ -261,12 +270,15 @@ Job {i}:
     system_instruction = ai_rules.get('system', '')
     rulebook = ai_rules.get('rulebook', '')
     hardware = ai_rules.get('hardware', '')
+    profile_context = ai_rules.get('profile_context', '')
     
     prompt = f"""{system_instruction}
 
 {rulebook}
 
 {hardware}
+
+{profile_context}
 
 {profile_text}
 

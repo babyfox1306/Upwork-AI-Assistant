@@ -99,10 +99,13 @@ def chat_with_ai(user_input, collection, conversation_history):
     
     # Build context
     context = f"""
-Profile CEO:
+Profile Tuấn Anh (freelancer):
+- Name: {profile.get('name', 'Tuấn Anh')}
+- Title: {profile.get('title', 'Python Developer')}
 - Skills: {', '.join(profile.get('skills', []))}
 - Experience: {profile.get('experience', 0)} năm
 - Rate: {profile.get('rate', '')}
+- Work Style: {profile.get('work_style', 'Demo-first')}
 """
     
     # Nếu user hỏi về jobs, search trước
@@ -118,6 +121,7 @@ Profile CEO:
     system_instruction = ""
     rulebook = ""
     hardware = ""
+    profile_context = ""
     
     analysis_file = rules_dir / 'analysis.md'
     if analysis_file.exists():
@@ -134,12 +138,19 @@ Profile CEO:
         with open(hardware_file, 'r', encoding='utf-8') as f:
             hardware = f.read()
     
+    profile_context_file = rules_dir / 'profile_context.md'
+    if profile_context_file.exists():
+        with open(profile_context_file, 'r', encoding='utf-8') as f:
+            profile_context = f.read()
+    
     # Build messages
     system_prompt = f"""{system_instruction}
 
 {rulebook}
 
-{hardware}"""
+{hardware}
+
+{profile_context}"""
     
     messages = [
         {'role': 'system', 'content': system_prompt + '\n\n' + context}

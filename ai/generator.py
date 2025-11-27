@@ -17,8 +17,12 @@ with open(config_path, 'r', encoding='utf-8') as f:
 ollama_config = config.get('ollama', {})
 ollama_model = ollama_config.get('model', 'qwen2.5:7b-instruct-q4_K_M')
 
+# Load AI rules
+ai_rules_path = Path(__file__).parent.parent / 'ai_rules'
+profile_context = (ai_rules_path / 'profile_context.md').read_text(encoding='utf-8') if (ai_rules_path / 'profile_context.md').exists() else ""
+
 def load_profile():
-    """Load CEO profile"""
+    """Load freelancer profile (Tuấn Anh)"""
     profile_path = Path(__file__).parent.parent / 'config' / 'profile.yaml'
     if profile_path.exists():
         with open(profile_path, 'r', encoding='utf-8') as f:
@@ -85,10 +89,14 @@ def generate_proposal(job_id: str = None, job_link: str = None, job_data: Dict =
     template = load_template()
     
     # Build prompt
-    prompt = f"""Bạn là Lysa - AI hỗ trợ viết proposal chuyên nghiệp.
+    prompt = f"""Bạn là Lysa - AI hỗ trợ viết proposal chuyên nghiệp, hỗ trợ Tuấn Anh (freelancer).
 
-PROFILE FREELANCER:
+{profile_context}
+
+PROFILE FREELANCER (Tuấn Anh - freelancer thật):
 {json.dumps(profile, ensure_ascii=False, indent=2)}
+
+QUAN TRỌNG: Profile trên là của Tuấn Anh (freelancer thật), không phải "CEO Lysa". Bạn phải generate proposals dựa trên skills/work style thực tế của Tuấn Anh. Nhấn mạnh demo-first approach.
 
 JOB CẦN VIẾT PROPOSAL:
 Title: {job_data.get('title', 'N/A')}

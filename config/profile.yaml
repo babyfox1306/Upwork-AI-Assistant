@@ -1,14 +1,46 @@
-name: "CEO Lysa"
+name: "Tuấn Anh"
+title: "Python Developer | Web Scraping • Automation • PDF Processing • Data Tools"
+
 skills:
-  - WordPress
-  - Laravel
-  - Shopify
-  - Node.js
-  - React.js
+  - Python
   - Web Scraping
+  - Data Extraction
+  - PDF Automation (PyMuPDF)
+  - API Integration
+  - Data Cleaning
+  - Automation Scripts
+  - CSV / Excel / JSON Processing
+  - Regex
+  - RTF / XML Processing
+  - CLI Tool Development
+  - Selenium
+  - Playwright
+  - BeautifulSoup4
+  - Pandas
+  - FastAPI
 
 experience: 8
 rate: "15$/h hoặc fixed"
+
+work_style: "Demo-first, không chém gió. Gửi CSV + script + README thật ngay trong proposal."
+
+tech_stack:
+  - Python 3.x
+  - Requests, Selenium, Playwright
+  - Pandas, FastAPI
+  - PyMuPDF (fitz), pdfplumber
+  - BeautifulSoup4, lxml
+  - Regex nâng cao
+  - JSON / CSV / Excel / XML pipelines
+
+strengths:
+  - Scrape web (static, JS, API, pagination, 2FA, cookies)
+  - Build automation tools: download / parse / transform / clean / export
+  - Custom PDF processing (remove elements, detect objects, OCR pipeline)
+  - Data cleaning, extraction, conversion
+  - Tạo CLI tools nhẹ, dễ deploy
+  - Fix tool cũ / refactor code rác thành code chuẩn
+  - Giao tiếp nhanh, sửa lỗi trong vài phút
 
 portfolio:
   - link: "https://github.com/ceohungyue/sample-project"

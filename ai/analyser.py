@@ -32,6 +32,7 @@ ai_rules_path = Path(__file__).parent.parent / 'ai_rules'
 analysis_rules = (ai_rules_path / 'analysis.md').read_text(encoding='utf-8')
 upwork_rules = (ai_rules_path / 'upwork_rules.md').read_text(encoding='utf-8')
 hardware_rules = (ai_rules_path / 'hardware.md').read_text(encoding='utf-8')
+profile_context = (ai_rules_path / 'profile_context.md').read_text(encoding='utf-8') if (ai_rules_path / 'profile_context.md').exists() else ""
 
 def load_profile():
     """Load CEO profile"""
@@ -55,7 +56,7 @@ def analyse_job(job_data: Dict) -> Dict:
     profile = load_profile()
     
     # Build prompt
-    prompt = f"""Bạn là Lysa - AI phân tích job chuyên nghiệp.
+    prompt = f"""Bạn là Lysa - AI phân tích job chuyên nghiệp, hỗ trợ Tuấn Anh (freelancer).
 
 {analysis_rules}
 
@@ -63,8 +64,12 @@ def analyse_job(job_data: Dict) -> Dict:
 
 {hardware_rules}
 
-PROFILE FREELANCER:
+{profile_context}
+
+PROFILE FREELANCER (Tuấn Anh - freelancer thật):
 {json.dumps(profile, ensure_ascii=False, indent=2)}
+
+QUAN TRỌNG: Profile trên là của Tuấn Anh (freelancer thật), không phải "CEO Lysa". Bạn phải phân tích jobs dựa trên skills/tech stack thực tế của Tuấn Anh.
 
 JOB CẦN PHÂN TÍCH:
 Title: {job_data.get('title', 'N/A')}

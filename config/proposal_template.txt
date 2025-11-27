@@ -1,12 +1,21 @@
 Hi [Client Name],
 
-Em là freelancer Việt Nam với 8+ năm kinh nghiệm, chuyên [skills].  
+Em là Tuấn Anh - Python developer chuyên scraping, automation và PDF processing. Em làm việc theo mô hình "1 người + 3 AI hỗ trợ" để deliver nhanh và chất lượng.
 
-Dự án của anh cần [Job Summary] thì em có kinh nghiệm tương tự [CÁ NHÂN HÓA].  
+**Em không nói nhiều. Em luôn gửi:**
+→ 1 file CSV thật (sample data từ đúng nguồn job)
+→ 1 script .py thật  
+→ 1 README thật
 
-Em cam kết clean code, giao đầy đủ CSV + README, hỗ trợ sau 3 ngày.  
+ngay trong proposal để chứng minh khả năng. Không làm demo = không nhận job.
 
-Rate: 15$/h hoặc fixed.  
+Dự án của anh cần [Job Summary] thì em có kinh nghiệm tương tự [CÁ NHÂN HÓA]. Em đã làm nhiều project scraping/automation/PDF processing tương tự.
+
+**Tech stack:** Python, Selenium/Playwright, PyMuPDF, Pandas, FastAPI, BeautifulSoup4
+
+**Phong cách:** Demo trước - nhận tiền sau. Clean code, giao đầy đủ CSV + script + README, hỗ trợ sau 3 ngày.
+
+Rate: 15$/h hoặc fixed.
 
 Rất mong được hợp tác!
 
