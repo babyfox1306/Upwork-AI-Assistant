@@ -73,7 +73,7 @@ QUAN TRỌNG: Profile trên là của Tuấn Anh (freelancer thật), không ph�
 
 JOB CẦN PHÂN TÍCH:
 Title: {job_data.get('title', 'N/A')}
-Description: {job_data.get('description', 'N/A')[:1000]}
+Description: {job_data.get('description', 'N/A')[:800]}
 Budget: {job_data.get('budget', 'N/A')}
 Source: {job_data.get('source', 'N/A')}
 Link: {job_data.get('link', 'N/A')}
@@ -87,7 +87,9 @@ Hãy phân tích job này theo đúng 7 tầng CEO MODE:
 6. TIER MATCHING
 7. VERDICT
 
-Trả lời bằng JSON format:
+QUAN TRỌNG: Chỉ trả về JSON, không có text thêm trước hoặc sau.
+
+Trả lời bằng JSON format (chỉ JSON, không có markdown hay text khác):
 {{
   "intent_analysis": "...",
   "tech_feasibility": "...",
@@ -119,31 +121,53 @@ Trả lời bằng JSON format:
         
         result_text = response['message']['content']
         
-        # Try to extract JSON from response
+        # Try to extract JSON from response - improved extraction
         try:
-            # Tìm JSON trong response
             import re
-            json_match = re.search(r'\{.*\}', result_text, re.DOTALL)
-            if json_match:
-                analysis = json.loads(json_match.group())
+            # Method 1: Try to find JSON in code block first
+            json_block_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', result_text, re.DOTALL)
+            if json_block_match:
+                analysis = json.loads(json_block_match.group(1))
             else:
-                # Fallback: parse manually
-                analysis = {
-                    'raw_response': result_text,
-                    'score': 50,
-                    'verdict': 'CẦN XEM XÉT'
-                }
-        except json.JSONDecodeError as e:
+                # Method 2: Find first complete JSON object by counting braces
+                start_idx = result_text.find('{')
+                if start_idx != -1:
+                    brace_count = 0
+                    end_idx = start_idx
+                    for i in range(start_idx, len(result_text)):
+                        if result_text[i] == '{':
+                            brace_count += 1
+                        elif result_text[i] == '}':
+                            brace_count -= 1
+                            if brace_count == 0:
+                                end_idx = i
+                                break
+                    if brace_count == 0:
+                        json_str = result_text[start_idx:end_idx+1]
+                        analysis = json.loads(json_str)
+                    else:
+                        # Method 3: Fallback to regex (non-greedy)
+                        json_match = re.search(r'\{.*?\}', result_text, re.DOTALL)
+                        if json_match:
+                            analysis = json.loads(json_match.group())
+                        else:
+                            raise ValueError("No JSON found in response")
+                else:
+                    raise ValueError("No JSON found in response")
+        except (json.JSONDecodeError, ValueError) as e:
             logger.warning(f"Failed to parse JSON from AI response for job {job_data.get('job_id', 'unknown')}: {e}")
+            # Try to extract at least score and verdict from text
+            score_match = re.search(r'"score":\s*(\d+)', result_text)
+            verdict_match = re.search(r'"verdict":\s*"([^"]+)"', result_text)
             analysis = {
-                'raw_response': result_text,
-                'score': 50,
-                'verdict': 'CẦN XEM XÉT'
+                'raw_response': result_text[:500],  # Limit raw response length
+                'score': int(score_match.group(1)) if score_match else 50,
+                'verdict': verdict_match.group(1) if verdict_match else 'CẦN XEM XÉT'
             }
         except Exception as e:
-            logger.error(f"Error parsing AI response for job {job_data.get('job_id', 'unknown')}: {e}")
+            logger.error(f"Error parsing AI response for job {job_data.get('job_id', 'unknown')}: {e}", exc_info=True)
             analysis = {
-                'raw_response': result_text,
+                'raw_response': result_text[:500],
                 'score': 50,
                 'verdict': 'CẦN XEM XÉT'
             }
