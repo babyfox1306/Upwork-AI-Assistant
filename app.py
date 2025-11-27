@@ -115,7 +115,7 @@ Profile Tuấn Anh (freelancer):
 - Work Style: {profile.get('work_style', 'Demo-first')}
 """
     
-    # Nếu user hỏi về jobs, search trước
+    # Nếu user hỏi về jobs, search trước (chỉ khi cần)
     if any(keyword in user_input.lower() for keyword in ['job', 'việc', 'tìm', 'search', 'phân tích']):
         jobs = search_jobs(collection, user_input, top_k=5)
         if jobs:
@@ -123,61 +123,25 @@ Profile Tuấn Anh (freelancer):
             for i, job in enumerate(jobs, 1):
                 context += f"{i}. {job['title']}\n   Budget: {job.get('budget', 'N/A')}\n   Link: {job.get('link', 'N/A')}\n\n"
     
-    # Load AI rules
-    rules_dir = Path(__file__).parent / 'ai_rules'
-    system_instruction = ""
-    rulebook = ""
-    hardware = ""
-    profile_context = ""
+    # Load AI rules từ cache (nhanh hơn)
+    ai_rules = _load_ai_rules()
+    system_instruction = ai_rules['system_instruction']
+    rulebook = ai_rules['rulebook']
+    hardware = ai_rules['hardware']
+    profile_context = ai_rules['profile_context']
     
-    analysis_file = rules_dir / 'analysis.md'
-    if analysis_file.exists():
-        with open(analysis_file, 'r', encoding='utf-8') as f:
-            system_instruction = f.read()
+    # Build system prompt ngắn gọn hơn (chỉ load rules khi cần)
+    # Rút gọn personality để prompt ngắn hơn, nhanh hơn
+    system_prompt = f"""Bạn là Lysa - AI assistant thông minh, nói chuyện tự nhiên, có tư duy logic. Hỗ trợ Tuấn Anh (freelancer) tìm jobs, phân tích, viết proposal.
+
+Tone: Tự nhiên như bạn bè, không formal, thực tế, không vòng vo.
+
+{profile_context[:500] if profile_context else ''}"""
     
-    rules_file = rules_dir / 'upwork_rules.md'
-    if rules_file.exists():
-        with open(rules_file, 'r', encoding='utf-8') as f:
-            rulebook = f.read()
-    
-    hardware_file = rules_dir / 'hardware.md'
-    if hardware_file.exists():
-        with open(hardware_file, 'r', encoding='utf-8') as f:
-            hardware = f.read()
-    
-    profile_context_file = rules_dir / 'profile_context.md'
-    if profile_context_file.exists():
-        with open(profile_context_file, 'r', encoding='utf-8') as f:
-            profile_context = f.read()
-    
-    # Build messages với personality tự nhiên hơn
-    system_prompt = f"""Bạn là Lysa - AI assistant thông minh, có tư duy logic và biết cách nói chuyện tự nhiên. Bạn hỗ trợ Tuấn Anh (freelancer) trong việc tìm jobs, phân tích, và viết proposal.
-
-PERSONALITY & COMMUNICATION STYLE:
-- Nói chuyện tự nhiên, như một người bạn đồng hành, không quá formal
-- Có tư duy logic: phân tích vấn đề từ nhiều góc độ, đưa ra lý do rõ ràng
-- Linh hoạt: không rập khuôn, mỗi câu trả lời phù hợp với context
-- Thực tế: nói thẳng, không vòng vo, nhưng vẫn lịch sự
-- Có cảm xúc: thể hiện sự quan tâm, động viên khi cần
-- Đa dạng: thay đổi cách diễn đạt, không lặp lại cùng một pattern
-
-VÍ DỤ CÁCH NÓI CHUYỆN:
-❌ Rập khuôn: "Tôi đã phân tích job và thấy rằng..."
-✅ Tự nhiên: "Job này khá hay đấy! Mình thấy..."
-
-❌ Rập khuôn: "Dựa trên profile của bạn, tôi khuyên..."
-✅ Tự nhiên: "Với skills của bạn thì job này match 80% rồi. Nhưng..."
-
-❌ Rập khuôn: "Tôi đã tìm thấy 5 jobs phù hợp..."
-✅ Tự nhiên: "Mình scan được 5 jobs, có vài cái khá ổn. Xem thử..."
-
-{system_instruction}
-
-{rulebook}
-
-{hardware}
-
-{profile_context}"""
+    # Chỉ thêm rules khi user hỏi về phân tích hoặc proposal
+    if any(kw in user_input.lower() for kw in ['phân tích', 'analyze', 'proposal', 'viết']):
+        system_prompt += f"\n\n{system_instruction[:300] if system_instruction else ''}"
+        system_prompt += f"\n{rulebook[:300] if rulebook else ''}"
     
     messages = [
         {'role': 'system', 'content': system_prompt + '\n\n' + context}
@@ -191,14 +155,15 @@ VÍ DỤ CÁCH NÓI CHUYỆN:
     
     try:
         if OLLAMA_CLIENT:
-            client = Client(host=base_url)
+            client = Client(host=base_url, timeout=30.0)  # Timeout ngắn hơn
             response = client.chat(
                 model=ollama_config['model'],
                 messages=messages,
                 options={
-                    'temperature': 0.7,  # Tăng temperature để tự nhiên hơn (0.7 thay vì 0.3)
-                    'num_predict': 1000,  # Cho phép response dài hơn
-                    'top_p': 0.9,  # Diversity trong responses
+                    'temperature': 0.5,  # Giảm xuống 0.5 để nhanh hơn nhưng vẫn tự nhiên
+                    'num_predict': 500,  # Giảm xuống để nhanh hơn
+                    'top_p': 0.85,
+                    'top_k': 40,  # Thêm top_k để nhanh hơn
                 }
             )
             return response['message']['content']
@@ -207,9 +172,10 @@ VÍ DỤ CÁCH NÓI CHUYỆN:
                 model=ollama_config['model'],
                 messages=messages,
                 options={
-                    'temperature': 0.7,
-                    'num_predict': 1000,
-                    'top_p': 0.9,
+                    'temperature': 0.5,
+                    'num_predict': 500,
+                    'top_p': 0.85,
+                    'top_k': 40,
                 }
             )
             return response['message']['content']
@@ -313,16 +279,16 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     if st.button("🔍 Tìm jobs WordPress"):
-        st.session_state.messages.append({"role": "user", "content": "Tìm jobs WordPress cho em"})
+        st.session_state.messages.append({"role": "user", "content": "Tìm jobs WordPress cho anh"})
         st.rerun()
 
 with col2:
     if st.button("📝 Phân tích jobs mới"):
-        st.session_state.messages.append({"role": "user", "content": "Phân tích jobs mới nhất cho em"})
+        st.session_state.messages.append({"role": "user", "content": "Phân tích jobs mới nhất cho Tuấn anh"})
         st.rerun()
 
 with col3:
     if st.button("✍️ Viết proposal"):
-        st.session_state.messages.append({"role": "user", "content": "Hướng dẫn em viết proposal"})
+        st.session_state.messages.append({"role": "user", "content": "Hướng dẫn tuấn anh viết proposal"})
         st.rerun()
 
