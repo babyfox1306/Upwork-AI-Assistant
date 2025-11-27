@@ -226,7 +226,7 @@ search_keywords:
 
 # Ollama Configuration
 ollama:
-  model: "llama3.2:3b"  # Cân bằng tốc độ/chất lượng (2.0 GB). Nhanh hơn 7B 2-3x, đủ thông minh để follow JSON format. Nếu cần nhanh hơn: "gemma3:1b", nếu cần chất lượng hơn: "qwen2.5:7b-instruct-q4_K_M"
+  model: "qwen3:4b"  # Cân bằng tốc độ/chất lượng tốt (2.5 GB). Nhanh hơn 7B, chất lượng tốt hơn 3B, follow JSON format tốt. Nếu cần nhanh hơn: "llama3.2:3b", nếu cần chất lượng hơn: "qwen2.5:7b-instruct-q4_K_M"
   base_url: "http://localhost:11434"
   embedding_model: "all-minilm"
   # Tip: Nếu chậm, dùng model nhẹ hơn: llama3.2:3b (nhanh hơn 2-3x)
