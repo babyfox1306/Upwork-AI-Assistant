@@ -17,11 +17,16 @@ def validate_job(job_data: Dict) -> Tuple[bool, List[str]]:
     """
     errors = []
     
-    # Required fields
-    required_fields = ['job_id', 'title', 'link', 'source']
+    # Required fields (source có thể default nếu thiếu)
+    required_fields = ['job_id', 'title', 'link']
     for field in required_fields:
         if not job_data.get(field):
             errors.append(f"Missing required field: {field}")
+    
+    # Source có thể default nếu thiếu
+    if not job_data.get('source'):
+        # Không thêm vào errors, sẽ được set default sau
+        pass
     
     # Validate job_id
     job_id = job_data.get('job_id', '')
@@ -41,13 +46,12 @@ def validate_job(job_data: Dict) -> Tuple[bool, List[str]]:
         elif len(title) > 500:
             errors.append(f"title too long ({len(title)} chars, max 500)")
     
-    # Validate description
+    # Validate description (sẽ được sanitize tự động nếu quá dài)
     description = job_data.get('description', '')
     if description:
         if not isinstance(description, str):
             errors.append("description must be a string")
-        elif len(description) > 10000:
-            errors.append(f"description too long ({len(description)} chars, max 10000)")
+        # Note: Description quá dài sẽ được sanitize tự động, không reject
     
     # Validate link
     link = job_data.get('link', '')
@@ -82,7 +86,7 @@ def validate_job(job_data: Dict) -> Tuple[bool, List[str]]:
 
 def sanitize_job(job_data: Dict) -> Dict:
     """
-    Sanitize job data (trim strings, normalize types)
+    Sanitize job data (trim strings, normalize types, set defaults)
     
     Args:
         job_data: Job dictionary to sanitize
@@ -92,19 +96,27 @@ def sanitize_job(job_data: Dict) -> Dict:
     """
     sanitized = job_data.copy()
     
+    # Set default source nếu thiếu
+    if not sanitized.get('source'):
+        sanitized['source'] = 'Unknown'
+    
     # Trim string fields
     string_fields = ['job_id', 'title', 'description', 'link', 'source', 'category', 'client_country']
     for field in string_fields:
         if field in sanitized and isinstance(sanitized[field], str):
             sanitized[field] = sanitized[field].strip()
     
-    # Limit description length
-    if 'description' in sanitized and len(sanitized.get('description', '')) > 10000:
-        sanitized['description'] = sanitized['description'][:10000] + '...'
+    # Limit description length (tự động truncate thay vì reject)
+    if 'description' in sanitized:
+        desc = sanitized.get('description', '')
+        if isinstance(desc, str) and len(desc) > 10000:
+            sanitized['description'] = desc[:10000] + '...'
     
     # Limit title length
-    if 'title' in sanitized and len(sanitized.get('title', '')) > 500:
-        sanitized['title'] = sanitized['title'][:500]
+    if 'title' in sanitized:
+        title = sanitized.get('title', '')
+        if isinstance(title, str) and len(title) > 500:
+            sanitized['title'] = title[:500]
     
     return sanitized
 

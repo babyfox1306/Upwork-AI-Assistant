@@ -12,7 +12,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ai.analyser import analyse_job
 from ai.summarizer import generate_daily_summary, generate_weekly_summary
+from utils.logger import setup_logger
 import json
+
+# Setup logger
+logger = setup_logger('analyze_and_summarize')
 
 def main():
     """Analyze new jobs and generate summaries"""
@@ -60,14 +64,26 @@ def main():
         for i, job in enumerate(new_jobs[:3], 1):
             print(f"[{i}/3] Analyzing: {job.get('title', 'N/A')[:50]}...", end=' ', flush=True)
             try:
-                analysis = analyse_job(job)
-                analyzed.append({
-                    'job': job,
-                    'analysis': analysis
-                })
-                print("✓")
+                from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+                
+                def run_analysis():
+                    return analyse_job(job)
+                
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(run_analysis)
+                    try:
+                        analysis = future.result(timeout=60)
+                        analyzed.append({
+                            'job': job,
+                            'analysis': analysis
+                        })
+                        print("[OK]")
+                    except FutureTimeoutError:
+                        print("[TIMEOUT]")
+                        logger.warning(f"AI analysis timeout for job {job.get('job_id', 'unknown')}")
             except Exception as e:
-                print(f"✗ Error: {str(e)[:30]}")
+                print(f"[FAIL] Error: {str(e)[:30]}")
+                logger.error(f"Error analyzing job {job.get('job_id', 'unknown')}: {e}")
     else:
         # Analyze top 5 jobs (giảm từ 10 xuống 5 để nhanh hơn)
         print(f"\n🔍 Phân tích top 5 jobs...")
@@ -75,14 +91,29 @@ def main():
         for i, job in enumerate(new_jobs[:5], 1):
             print(f"[{i}/5] Analyzing: {job.get('title', 'N/A')[:50]}...", end=' ', flush=True)
             try:
-                analysis = analyse_job(job)
-                analyzed.append({
-                    'job': job,
-                    'analysis': analysis
-                })
-                print("✓")
+                # Thêm timeout cho AI analysis (60 giây mỗi job) - dùng threading cho cross-platform
+                from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+                import threading
+                
+                def run_analysis():
+                    return analyse_job(job)
+                
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(run_analysis)
+                    try:
+                        analysis = future.result(timeout=60)  # 60 seconds timeout
+                        analyzed.append({
+                            'job': job,
+                            'analysis': analysis
+                        })
+                        print("[OK]")
+                    except FutureTimeoutError:
+                        print("[TIMEOUT]")
+                        logger.warning(f"AI analysis timeout for job {job.get('job_id', 'unknown')} after 60s")
+                        future.cancel()
             except Exception as e:
-                print(f"✗ Error: {str(e)[:30]}")
+                print(f"[FAIL] Error: {str(e)[:30]}")
+                logger.error(f"Error analyzing job {job.get('job_id', 'unknown')}: {e}")
         
         # Save analyses
         if analyzed:

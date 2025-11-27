@@ -86,14 +86,14 @@ def load_jobs():
                     logger.debug(f"Skipping duplicate job {job_id} at line {line_num}")
                     continue
                 
-                # Validate job structure
+                # Sanitize job trước (set defaults, truncate)
+                job = sanitize_job(job)
+                
+                # Validate job structure sau khi sanitize
                 is_valid, errors = validate_job(job)
                 if not is_valid:
                     logger.warning(f"Invalid job {job_id} at line {line_num}: {', '.join(errors)}")
                     continue
-                
-                # Sanitize job
-                job = sanitize_job(job)
                 
                 seen_ids.add(job_id)
                 jobs.append(job)

@@ -44,6 +44,10 @@ if raw_jobs_file.exists():
     with open(raw_jobs_file, 'r', encoding='utf-8') as f:
         for line_num, line in enumerate(f, 1):
             if line.strip():
+                # Skip git conflict markers
+                if line.strip().startswith('<<<<<<<') or line.strip().startswith('=======') or line.strip().startswith('>>>>>>>'):
+                    logger.warning(f"Skipping git conflict marker at line {line_num} in raw_jobs.jsonl")
+                    continue
                 try:
                     job = json.loads(line)
                     job_id = job.get('job_id', '')

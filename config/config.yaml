@@ -62,6 +62,10 @@ sources:
       url: "https://www.indeed.com/rss?q=web+development+remote&l="
       enabled: false  # Tắt tạm vì 403 (cần authentication)
       category: "jobs"
+    - name: "Jobicy - Remote Jobs Blog"
+      url: "https://jobicy.com/feed"
+      enabled: true  # Test OK - remote jobs và tips
+      category: "jobs"
 
   # ============================================
   # TECH BLOGS & NEWS RSS - Để AI học trend
@@ -107,6 +111,38 @@ sources:
       url: "https://www.smashingmagazine.com/feed/"
       enabled: true
       category: "trends"
+    - name: "HackerNews - Main Feed"
+      url: "https://news.ycombinator.com/rss"
+      enabled: true  # Test OK - trends chung từ HN community
+      category: "trends"
+    - name: "WIRED - Main Feed"
+      url: "https://www.wired.com/feed/rss"
+      enabled: true  # Test OK - tech news broad (AI, gadgets, culture)
+      category: "trends"
+    - name: "Analytics Vidhya"
+      url: "https://analyticsvidhya.com/feed"
+      enabled: true  # Test OK - data science/ML tutorials, practical code
+      category: "trends"
+    - name: "Neptune.ai Blog"
+      url: "https://neptune.ai/blog/feed"
+      enabled: true  # Test OK - ML engineering deep-dive (LLM fine-tuning, RAG)
+      category: "trends"
+    - name: "Machine Learning Mastery"
+      url: "https://machinelearningmastery.com/feed"
+      enabled: true  # Test OK - tutorials code-heavy (BERT, Transformers)
+      category: "trends"
+    - name: "NVIDIA AI Blog"
+      url: "https://blogs.nvidia.com/feed/"
+      enabled: true  # Test OK - GPU/AI hardware trends (FLUX.2, Agents)
+      category: "trends"
+    - name: "Google Research Blog"
+      url: "https://research.google/blog/rss/"
+      enabled: true  # Test OK - research papers (EV AI, Speech Translation, Gemini)
+      category: "trends"
+    - name: "Artificial Intelligence Blog"
+      url: "https://www.artificial-intelligence.blog/ai-news?format=rss"
+      enabled: true  # Test OK - AI news/opinion (Gemini 3 Pro, AI trends)
+      category: "trends"
 
   # ============================================
   # GOOGLE ALERTS RSS
@@ -137,6 +173,7 @@ sources:
       enabled: true
       category: "jobs"
       parser: "html"  # Cần parse HTML thay vì RSS
+    # Note: HN Main RSS đã thêm vào tech_blogs ở trên
 
   # ============================================
   # API SOURCES (Public APIs)
@@ -147,6 +184,7 @@ sources:
       enabled: true
       category: "jobs"
       params: {}
+    # Note: Remotive có API nhưng cần check documentation trước khi thêm
 
 # Keywords để filter và phân loại jobs
 search_keywords:
@@ -164,6 +202,23 @@ search_keywords:
   - "Data Processing"
   - "E-commerce"
   - "Full Stack"
+  - "AI"
+  - "Machine Learning"
+  - "ML"
+  - "Remote Freelance"
+  - "TypeScript"
+  - "Vue.js"
+  - "Angular"
+  - "Gemini"
+  - "LLM Fine-Tuning"
+  - "Remote DevOps"
+  - "LLM"
+  - "Data Science"
+  - "Transformer"
+  - "Speech AI"
+  - "GPU Optimization"
+  - "BERT"
+  - "FLUX"
 
 # Ollama Configuration
 ollama:
