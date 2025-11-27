@@ -121,8 +121,9 @@ Trả về CHỈ JSON (bắt đầu {{, kết thúc }}):
         logger.debug(f"Raw AI response (first 200 chars): {result_text[:200]}")
         
         # Try to extract JSON from response - improved extraction với nhiều methods
-        analysis = None
-        import re
+        try:
+            analysis = None
+            import re
         
         # Method 1: Try to find JSON in code block first
         json_block_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', result_text, re.DOTALL)
@@ -193,6 +194,14 @@ Trả về CHỈ JSON (bắt đầu {{, kết thúc }}):
                 'raw_response': result_text[:500],
                 'parse_method': 'text_extraction'
             }
+            
+            # Ensure analysis is not None
+            if not analysis:
+                analysis = {
+                    'raw_response': result_text[:500],
+                    'score': 50,
+                    'verdict': 'CẦN XEM XÉT'
+                }
         except Exception as e:
             logger.error(f"Error parsing AI response for job {job_data.get('job_id', 'unknown')}: {e}", exc_info=True)
             analysis = {
