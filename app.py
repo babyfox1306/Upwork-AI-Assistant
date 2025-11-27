@@ -93,6 +93,10 @@ def search_jobs(collection, query_text, top_k=10):
                     jobs.append(job)
         
         return jobs
+    except Exception as e:
+        st.error(f"Lỗi khi search jobs: {e}")
+        st.info("💡 Tip: Có thể cần reinstall ChromaDB: pip install --upgrade chromadb>=1.3.5")
+        return []
 
 def chat_with_ai(user_input, collection, conversation_history):
     """Chat với AI"""
