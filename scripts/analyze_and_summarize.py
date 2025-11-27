@@ -101,8 +101,8 @@ def main():
                 with ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(run_analysis)
                     try:
-                        # Timeout 50s (ngắn hơn để tránh hang lâu)
-                        analysis = future.result(timeout=50)  # 50 seconds timeout
+                        # Timeout 70s (đủ cho 60s + retry logic)
+                        analysis = future.result(timeout=70)  # 70 seconds timeout
                         analyzed.append({
                             'job': job,
                             'analysis': analysis
@@ -110,7 +110,7 @@ def main():
                         print("[OK]")
                     except FutureTimeoutError:
                         print("[TIMEOUT]")
-                        logger.warning(f"AI analysis timeout for job {job.get('job_id', 'unknown')} after 50s")
+                        logger.warning(f"AI analysis timeout for job {job.get('job_id', 'unknown')} after 70s")
                         future.cancel()
                         # Thêm analysis mặc định để không mất job
                         analyzed.append({

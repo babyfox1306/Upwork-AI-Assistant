@@ -58,62 +58,79 @@ def analyse_job(job_data: Dict) -> Dict:
     # Build prompt ngắn gọn hơn để nhanh hơn
     profile_summary = f"Tuấn Anh: {profile.get('title', 'Python Developer')}, {profile.get('experience', 0)} năm exp, skills: {', '.join(profile.get('skills', [])[:5])}"
     
-    prompt = f"""Phân tích job này cho Tuấn Anh (freelancer Python/Scraping/Automation).
+    # Rút ngắn description để prompt nhanh hơn
+    desc = job_data.get('description', 'N/A')
+    if len(desc) > 400:
+        desc = desc[:400] + "..."
+    
+    prompt = f"""Phân tích job cho Tuấn Anh (Python/Scraping/Automation).
 
 Profile: {profile_summary}
-
-Job:
-Title: {job_data.get('title', 'N/A')}
-Description: {job_data.get('description', 'N/A')[:600]}
+Job: {job_data.get('title', 'N/A')}
+Desc: {desc}
 Budget: {job_data.get('budget', 'N/A')}
 
-Phân tích 7 tầng:
+Phân tích ngắn gọn:
 1. INTENT - Client muốn gì?
-2. TECH FEASIBILITY - Match skills không? (HIGH/MED/LOW)
-3. SCOPE CREEP - Có risk phình scope không?
+2. TECH - Match skills? (HIGH/MED/LOW)
+3. SCOPE - Risk phình scope?
 4. ROI - Lời bao nhiêu?
-5. COMPETITION - Nhiều người apply không?
-6. TIER - Tier 1-5, phù hợp không?
+5. COMPETITION - Nhiều người apply?
+6. TIER - Tier 1-5
 7. VERDICT - NÊN LẤY / KHÔNG NÊN LẤY
 
-Trả về CHỈ JSON (bắt đầu {{, kết thúc }}):
+Trả về CHỈ JSON:
 {{
   "intent_analysis": "...",
-  "tech_feasibility": "HIGH/MEDIUM/LOW - lý do",
+  "tech_feasibility": "HIGH/MEDIUM/LOW",
   "scope_creep_detection": "...",
   "roi_check_real": "...",
   "competition_intel": "...",
-  "tier_matching": "Tier X - ...",
+  "tier_matching": "Tier X",
   "verdict": "NÊN LẤY / KHÔNG NÊN LẤY",
   "score": 0-100,
-  "keywords": ["kw1", "kw2"],
+  "keywords": ["kw1"],
   "category": "category"
 }}"""
 
     try:
-        # Sử dụng Client với timeout ngắn hơn để tránh hang
+        # Tăng timeout lên 60s và thêm retry logic
         from ollama import Client
-        client = Client(host=ollama_base_url, timeout=45.0)  # Giảm xuống 45s
+        import time
         
-        response = client.chat(
-            model=ollama_model,
-            messages=[
-                {
-                    'role': 'system',
-                    'content': 'Bạn là Lysa - AI phân tích job. Trả về CHỈ JSON, không text khác.'
-                },
-                {
-                    'role': 'user',
-                    'content': prompt
-                }
-            ],
-            options={
-                'temperature': 0.3,  # Giảm xuống 0.3 để nhanh hơn và chính xác hơn
-                'num_predict': 800,  # Giảm xuống 800 để nhanh hơn
-                'top_p': 0.8,
-                'top_k': 40,  # Thêm top_k để nhanh hơn
-            }
-        )
+        client = Client(host=ollama_base_url, timeout=60.0)  # Tăng lên 60s
+        
+        # Retry logic với exponential backoff
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                response = client.chat(
+                    model=ollama_model,
+                    messages=[
+                        {
+                            'role': 'system',
+                            'content': 'Bạn là Lysa. Trả về CHỈ JSON, không text khác.'
+                        },
+                        {
+                            'role': 'user',
+                            'content': prompt
+                        }
+                    ],
+                    options={
+                        'temperature': 0.2,  # Giảm xuống 0.2 để nhanh và chính xác hơn
+                        'num_predict': 600,  # Giảm xuống 600 để nhanh hơn
+                        'top_p': 0.7,
+                        'top_k': 30,
+                    }
+                )
+                break  # Thành công, thoát retry loop
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 2  # 2s, 4s
+                    logger.warning(f"Retry {attempt + 1}/{max_retries} after {wait_time}s: {e}")
+                    time.sleep(wait_time)
+                else:
+                    raise  # Nếu hết retry thì raise exception
         
         result_text = response['message']['content']
         
