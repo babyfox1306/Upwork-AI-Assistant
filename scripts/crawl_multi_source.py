@@ -12,7 +12,7 @@ import re
 import requests
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlencode, quote
+# urlencode, quote không dùng nữa sau khi refactor
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 
@@ -135,62 +135,90 @@ def normalize_job(entry, source_name, source_type):
     
     return job_data
 
-def crawl_rss_feed(feed_config):
-    """Crawl từ RSS feed, return (jobs, error_msg)"""
+def crawl_rss_feed(feed_config, retry_attempts=3):
+    """Crawl từ RSS feed với retry logic, return (jobs, error_msg)"""
     if not feed_config.get('enabled', False):
         return ([], None)
     
     url = feed_config['url']
     name = feed_config['name']
     
-    try:
-        # Add User-Agent để tránh bị block
-        import urllib.request
-        req = urllib.request.Request(url)
-        req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-        
-        feed = feedparser.parse(url)
-        
-        status = feed.get('status', 200)
-        error_msg = None
-        
-        if status not in [200, 301, 302]:  # Allow redirects
-            error_msg = f"HTTP {status}"
-            logger.warning(f"RSS feed {name} returned status {status}")
-            return ([], error_msg)
-        
-        # Check bozo (parsing errors)
-        if hasattr(feed, 'bozo') and feed.bozo:
-            if hasattr(feed, 'bozo_exception'):
-                error_msg = f"Parse error: {str(feed.bozo_exception)[:40]}"
-                logger.warning(f"RSS feed {name} parse error: {feed.bozo_exception}")
-            else:
-                error_msg = "Parse error"
-                logger.warning(f"RSS feed {name} parse error (unknown)")
-            return ([], error_msg)
-        
-        if not feed.entries:
-            logger.debug(f"RSS feed {name} has no entries")
-            return ([], None)
-        
-        jobs = []
-        for entry in feed.entries:
-            try:
-                job = normalize_job(entry, name, 'rss')
-                if job:
-                    jobs.append(job)
-                    existing_job_ids.add(job['job_id'])
-            except Exception as e:
-                logger.error(f"Error normalizing job from {name}: {e}")
-                continue
-        
-        logger.info(f"RSS feed {name}: found {len(jobs)} new jobs")
-        return (jobs, None)
+    # Headers để tránh bị block
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Cache-Control': 'no-cache'
+    }
     
-    except Exception as e:
-        error_msg = str(e)[:50]
-        logger.error(f"Error crawling RSS feed {name}: {e}", exc_info=True)
-        return ([], error_msg)
+    # Retry logic
+    for attempt in range(retry_attempts):
+        try:
+            # Parse với headers và timeout
+            feed = feedparser.parse(url, request_headers=headers)
+            
+            status = feed.get('status', 200)
+            error_msg = None
+            
+            # Check HTTP status
+            if status not in [200, 301, 302]:  # Allow redirects
+                if attempt < retry_attempts - 1:
+                    logger.warning(f"RSS feed {name} returned status {status}, retrying ({attempt + 1}/{retry_attempts})...")
+                    import time
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                error_msg = f"HTTP {status}"
+                logger.warning(f"RSS feed {name} returned status {status} after {retry_attempts} attempts")
+                return ([], error_msg)
+            
+            # Check bozo (parsing errors)
+            if hasattr(feed, 'bozo') and feed.bozo:
+                if attempt < retry_attempts - 1:
+                    logger.warning(f"RSS feed {name} parse error, retrying ({attempt + 1}/{retry_attempts})...")
+                    import time
+                    time.sleep(2 ** attempt)
+                    continue
+                if hasattr(feed, 'bozo_exception'):
+                    error_msg = f"Parse error: {str(feed.bozo_exception)[:40]}"
+                    logger.warning(f"RSS feed {name} parse error: {feed.bozo_exception}")
+                else:
+                    error_msg = "Parse error"
+                    logger.warning(f"RSS feed {name} parse error (unknown)")
+                return ([], error_msg)
+            
+            # Check if feed has entries
+            if not feed.entries:
+                logger.debug(f"RSS feed {name} has no entries")
+                return ([], None)
+            
+            # Process entries
+            jobs = []
+            for entry in feed.entries:
+                try:
+                    job = normalize_job(entry, name, 'rss')
+                    if job:
+                        jobs.append(job)
+                        existing_job_ids.add(job['job_id'])
+                except Exception as e:
+                    logger.error(f"Error normalizing job from {name}: {e}", exc_info=True)
+                    continue
+            
+            logger.info(f"RSS feed {name}: found {len(jobs)} new jobs")
+            return (jobs, None)
+        
+        except (requests.RequestException, Exception) as e:
+            if attempt < retry_attempts - 1:
+                logger.warning(f"RSS feed {name} error, retrying ({attempt + 1}/{retry_attempts}): {e}")
+                import time
+                time.sleep(2 ** attempt)
+                continue
+            error_msg = f"Error: {str(e)[:50]}"
+            logger.error(f"Error crawling RSS feed {name} after {retry_attempts} attempts: {e}", exc_info=True)
+            return ([], error_msg)
+    
+    return ([], "Max retries exceeded")
 
 def crawl_api_source(api_config):
     """Crawl từ API"""

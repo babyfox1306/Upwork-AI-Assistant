@@ -66,6 +66,10 @@ sources:
       url: "https://jobicy.com/feed"
       enabled: true  # Test OK - remote jobs và tips
       category: "jobs"
+    - name: "FreshRemote - All Remote Jobs"
+      url: "https://freshremote.work/rss.xml"
+      enabled: true  # Test OK - 16K+ remote jobs/month, dev-heavy
+      category: "jobs"
 
   # ============================================
   # TECH BLOGS & NEWS RSS - Để AI học trend
@@ -256,8 +260,9 @@ query:
 
 # Crawl Settings
 crawl:
-  timeout_per_source: 8  # seconds (tăng lên một chút để đủ cho feeds chậm)
+  timeout_per_source: 15  # seconds (tăng lên để đủ cho feeds chậm)
   max_workers: 5  # parallel threads (giảm xuống để ổn định hơn)
+  retry_attempts: 3  # Retry 3 lần nếu fail
   retry_attempts: 1  # giảm retry để nhanh hơn
   interval_minutes: 15  # GitHub Actions chạy mỗi 15 phút
   skip_tech_blogs_in_ci: true  # Skip tech blogs trong GitHub Actions để nhanh hơn

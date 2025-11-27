@@ -7,8 +7,8 @@ import yaml
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
-import ollama
+from typing import Dict, List
+# ollama không dùng trực tiếp nữa, dùng Client
 
 # Add parent directory to path for utils
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -87,16 +87,48 @@ Hãy phân tích job này theo đúng 7 tầng CEO MODE:
 6. TIER MATCHING
 7. VERDICT
 
+VÍ DỤ PHÂN TÍCH (Few-shot learning):
+
+Example 1 - Job phù hợp:
+Job: "Python Web Scraper - Extract data from e-commerce sites"
+{{
+  "intent_analysis": "Client cần scrape data từ e-commerce, extract product info, prices. Rõ ràng, không mơ hồ.",
+  "tech_feasibility": "HIGH - Match 100% với skills: Python, Requests/BeautifulSoup, data extraction",
+  "scope_creep_detection": "Ít risk - chỉ scrape, không có yêu cầu thêm ML/AI phức tạp",
+  "roi_check_real": "Budget $500-1000, thời gian 1-2 tuần. ROI tốt cho Tuấn Anh (rate 15$/h)",
+  "competition_intel": "Có thể có nhiều proposals, nhưng demo-first approach sẽ nổi bật",
+  "tier_matching": "Tier 2-3 - Mid-level, phù hợp với 8 năm exp của Tuấn Anh",
+  "verdict": "NÊN LẤY",
+  "score": 85,
+  "keywords": ["Python", "Web Scraping", "Data Extraction"],
+  "category": "Web Scraping"
+}}
+
+Example 2 - Job không phù hợp:
+Job: "Senior React Developer - Build complex SPA with Redux"
+{{
+  "intent_analysis": "Client cần React/Redux developer, frontend focus",
+  "tech_feasibility": "LOW - Tuấn Anh không có React trong tech stack, chủ yếu Python backend/scraping",
+  "scope_creep_detection": "Medium risk - có thể yêu cầu thêm TypeScript, testing",
+  "roi_check_real": "Budget cao nhưng không match skills",
+  "competition_intel": "Nhiều React devs sẽ apply, Tuấn Anh không có lợi thế",
+  "tier_matching": "Tier 1 - Senior level nhưng không match tech stack",
+  "verdict": "KHÔNG NÊN LẤY",
+  "score": 25,
+  "keywords": ["React", "Frontend", "Redux"],
+  "category": "Frontend"
+}}
+
 QUAN TRỌNG: Chỉ trả về JSON, không có text thêm trước hoặc sau.
 
 Trả lời bằng JSON format (chỉ JSON, không có markdown hay text khác):
 {{
   "intent_analysis": "...",
-  "tech_feasibility": "...",
+  "tech_feasibility": "HIGH/MEDIUM/LOW - [lý do cụ thể]",
   "scope_creep_detection": "...",
   "roi_check_real": "...",
   "competition_intel": "...",
-  "tier_matching": "...",
+  "tier_matching": "Tier 1-5 - [phân tích]",
   "verdict": "NÊN LẤY / KHÔNG NÊN LẤY",
   "score": 0-100,
   "keywords": ["keyword1", "keyword2"],
@@ -105,7 +137,11 @@ Trả lời bằng JSON format (chỉ JSON, không có markdown hay text khác):
 """
 
     try:
-        response = ollama.chat(
+        # Sử dụng Client với timeout để tránh hang
+        from ollama import Client
+        client = Client(base_url=ollama_base_url, timeout=90.0)  # 90s timeout
+        
+        response = client.chat(
             model=ollama_model,
             messages=[
                 {
@@ -116,7 +152,11 @@ Trả lời bằng JSON format (chỉ JSON, không có markdown hay text khác):
                     'role': 'user',
                     'content': prompt
                 }
-            ]
+            ],
+            options={
+                'temperature': 0.3,  # Lower temperature để output ổn định hơn
+                'num_predict': 2000,  # Limit output length
+            }
         )
         
         result_text = response['message']['content']
