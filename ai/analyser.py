@@ -117,48 +117,81 @@ Trả về CHỈ JSON (bắt đầu {{, kết thúc }}):
         
         result_text = response['message']['content']
         
-        # Try to extract JSON from response - improved extraction
-        try:
-            import re
-            # Method 1: Try to find JSON in code block first
-            json_block_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', result_text, re.DOTALL)
-            if json_block_match:
+        # Log raw response để debug (chỉ log 200 ký tự đầu)
+        logger.debug(f"Raw AI response (first 200 chars): {result_text[:200]}")
+        
+        # Try to extract JSON from response - improved extraction với nhiều methods
+        analysis = None
+        import re
+        
+        # Method 1: Try to find JSON in code block first
+        json_block_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', result_text, re.DOTALL)
+        if json_block_match:
+            try:
                 analysis = json.loads(json_block_match.group(1))
-            else:
-                # Method 2: Find first complete JSON object by counting braces
-                start_idx = result_text.find('{')
-                if start_idx != -1:
-                    brace_count = 0
-                    end_idx = start_idx
-                    for i in range(start_idx, len(result_text)):
-                        if result_text[i] == '{':
-                            brace_count += 1
-                        elif result_text[i] == '}':
-                            brace_count -= 1
-                            if brace_count == 0:
-                                end_idx = i
-                                break
-                    if brace_count == 0:
-                        json_str = result_text[start_idx:end_idx+1]
+                logger.debug("Parsed JSON from code block")
+            except json.JSONDecodeError:
+                pass
+        
+        # Method 2: Find first complete JSON object by counting braces
+        if not analysis:
+            start_idx = result_text.find('{')
+            if start_idx != -1:
+                brace_count = 0
+                end_idx = start_idx
+                for i in range(start_idx, len(result_text)):
+                    if result_text[i] == '{':
+                        brace_count += 1
+                    elif result_text[i] == '}':
+                        brace_count -= 1
+                        if brace_count == 0:
+                            end_idx = i
+                            break
+                if brace_count == 0:
+                    json_str = result_text[start_idx:end_idx+1]
+                    try:
                         analysis = json.loads(json_str)
-                    else:
-                        # Method 3: Fallback to regex (non-greedy)
-                        json_match = re.search(r'\{.*?\}', result_text, re.DOTALL)
-                        if json_match:
-                            analysis = json.loads(json_match.group())
-                        else:
-                            raise ValueError("No JSON found in response")
-                else:
-                    raise ValueError("No JSON found in response")
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.warning(f"Failed to parse JSON from AI response for job {job_data.get('job_id', 'unknown')}: {e}")
-            # Try to extract at least score and verdict from text
-            score_match = re.search(r'"score":\s*(\d+)', result_text)
-            verdict_match = re.search(r'"verdict":\s*"([^"]+)"', result_text)
+                        logger.debug("Parsed JSON by brace counting")
+                    except json.JSONDecodeError:
+                        pass
+        
+        # Method 3: Try to find JSON-like structure (có thể có lỗi nhỏ)
+        if not analysis:
+            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', result_text, re.DOTALL)
+            if json_match:
+                try:
+                    # Try to fix common JSON errors
+                    json_str = json_match.group()
+                    # Fix unquoted keys
+                    json_str = re.sub(r'(\w+):', r'"\1":', json_str)
+                    # Fix single quotes
+                    json_str = json_str.replace("'", '"')
+                    analysis = json.loads(json_str)
+                    logger.debug("Parsed JSON with fixes")
+                except (json.JSONDecodeError, Exception):
+                    pass
+        
+        # Method 4: Try to extract fields from text và build JSON manually
+        if not analysis:
+            logger.warning(f"No JSON found in response for job {job_data.get('job_id', 'unknown')}. Response: {result_text[:300]}")
+            # Extract fields từ text
+            score_match = re.search(r'(?:score|điểm)[:\s]+(\d+)', result_text, re.IGNORECASE)
+            verdict_match = re.search(r'(?:verdict|kết luận|quyết định)[:\s]+(NÊN LẤY|KHÔNG NÊN LẤY|CẦN XEM XÉT)', result_text, re.IGNORECASE)
+            tech_match = re.search(r'(?:tech|kỹ thuật)[:\s]+(HIGH|MEDIUM|LOW|CAO|TRUNG BÌNH|THẤP)', result_text, re.IGNORECASE)
+            
             analysis = {
-                'raw_response': result_text[:500],  # Limit raw response length
+                'intent_analysis': result_text[:200] if len(result_text) > 50 else result_text,
+                'tech_feasibility': tech_match.group(1) if tech_match else 'MEDIUM',
+                'scope_creep_detection': 'Cần xem xét',
+                'roi_check_real': 'Cần xem xét',
+                'competition_intel': 'Cần xem xét',
+                'tier_matching': 'Tier 3',
+                'verdict': verdict_match.group(1) if verdict_match else 'CẦN XEM XÉT',
                 'score': int(score_match.group(1)) if score_match else 50,
-                'verdict': verdict_match.group(1) if verdict_match else 'CẦN XEM XÉT'
+                'keywords': [],
+                'category': 'General',
+                'raw_response': result_text[:500],
+                'parse_method': 'text_extraction'
             }
         except Exception as e:
             logger.error(f"Error parsing AI response for job {job_data.get('job_id', 'unknown')}: {e}", exc_info=True)
