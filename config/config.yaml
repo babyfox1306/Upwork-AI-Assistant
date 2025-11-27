@@ -226,7 +226,7 @@ search_keywords:
 
 # Ollama Configuration
 ollama:
-  model: "qwen2.5:7b-instruct-q4_K_M"  # Model nặng nhưng chất lượng. Nếu chậm, thử: "llama3.2:3b" hoặc "qwen2.5:3b"
+  model: "gemma3:1b"  # Model nhẹ nhất (815 MB), rất nhanh. Nếu cần chất lượng hơn: "llama3.2:3b" hoặc "qwen2.5:7b-instruct-q4_K_M"
   base_url: "http://localhost:11434"
   embedding_model: "all-minilm"
   # Tip: Nếu chậm, dùng model nhẹ hơn: llama3.2:3b (nhanh hơn 2-3x)
