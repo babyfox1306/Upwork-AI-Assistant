@@ -136,7 +136,7 @@ Trả lời CHỈ proposal text, không thêm gì khác."""
 
     try:
         from ollama import Client
-        client = Client(base_url=ollama_base_url, timeout=60.0)
+        client = Client(host=ollama_base_url, timeout=60.0)
         
         response = client.chat(
             model=ollama_model,

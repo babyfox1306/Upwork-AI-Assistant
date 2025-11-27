@@ -146,7 +146,7 @@ Trả lời bằng JSON format (chỉ JSON, không có markdown hay text khác):
     try:
         # Sử dụng Client với timeout để tránh hang
         from ollama import Client
-        client = Client(base_url=ollama_base_url, timeout=90.0)  # 90s timeout
+        client = Client(host=ollama_base_url, timeout=90.0)  # 90s timeout
         
         response = client.chat(
             model=ollama_model,
