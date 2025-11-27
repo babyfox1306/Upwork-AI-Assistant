@@ -13,10 +13,16 @@ from pathlib import Path
 from datetime import datetime
 import chromadb
 from chromadb.config import Settings
-from sentence_transformers import SentenceTransformer
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from utils.logger import setup_logger
+from utils.embedding import get_embedding_model
+from utils.validation import validate_job, sanitize_job
+
+# Setup logger
+logger = setup_logger('local_sync_and_rag')
 
 # Load config
 config_path = Path(__file__).parent.parent / 'config' / 'config.yaml'
@@ -25,6 +31,8 @@ with open(config_path, 'r', encoding='utf-8') as f:
 
 chromadb_config = config['chromadb']
 raw_jobs_file = Path(__file__).parent.parent / 'data' / 'raw_jobs.jsonl'
+
+# Use embedding utility module (already imported above)
 
 def git_pull():
     """Pull data mới từ GitHub repo"""
@@ -37,12 +45,16 @@ def git_pull():
         )
         if result.returncode == 0:
             print("✓ Git pull thành công")
+            logger.info("Git pull successful")
             return True
         else:
-            print(f"⚠ Git pull có vấn đề: {result.stderr}")
+            error_msg = result.stderr or result.stdout
+            print(f"⚠ Git pull có vấn đề: {error_msg}")
+            logger.warning(f"Git pull failed: {error_msg}")
             return False
     except Exception as e:
         print(f"⚠ Lỗi git pull: {e}")
+        logger.error(f"Git pull error: {e}", exc_info=True)
         return False
 
 def load_jobs():
@@ -66,21 +78,30 @@ def load_jobs():
                 
                 # Validate job
                 if not job_id:
+                    logger.debug(f"Skipping job at line {line_num}: missing job_id")
                     continue  # Skip jobs without ID
                 
                 # Skip duplicates trong file
                 if job_id in seen_ids:
+                    logger.debug(f"Skipping duplicate job {job_id} at line {line_num}")
                     continue
+                
+                # Validate job structure
+                is_valid, errors = validate_job(job)
+                if not is_valid:
+                    logger.warning(f"Invalid job {job_id} at line {line_num}: {', '.join(errors)}")
+                    continue
+                
+                # Sanitize job
+                job = sanitize_job(job)
                 
                 seen_ids.add(job_id)
                 jobs.append(job)
             except json.JSONDecodeError as e:
-                # Skip invalid JSON lines silently
+                logger.warning(f"Invalid JSON at line {line_num}: {e}")
                 continue
             except Exception as e:
-                # Only print non-JSON errors
-                if "Expecting value" not in str(e):
-                    print(f"⚠ Lỗi parse job line {line_num}: {e}")
+                logger.error(f"Error parsing job at line {line_num}: {e}", exc_info=True)
                 continue
     
     print(f"✓ Load được {len(jobs)} jobs (đã loại bỏ duplicate)")
@@ -108,15 +129,19 @@ def get_existing_job_ids(collection):
     try:
         results = collection.get()
         existing_ids = set(results['ids'])
+        logger.info(f"Found {len(existing_ids)} existing jobs in ChromaDB")
         return existing_ids
-    except:
+    except Exception as e:
+        logger.warning(f"Error getting existing job IDs: {e}")
         return set()
 
 def create_embeddings(texts, model_name='all-MiniLM-L6-v2'):
     """Tạo embeddings cho texts"""
     print(f"✓ Đang tạo embeddings với model {model_name}...")
-    model = SentenceTransformer(model_name)
+    logger.info(f"Creating embeddings for {len(texts)} texts using {model_name}")
+    model = get_embedding_model(model_name)
     embeddings = model.encode(texts, show_progress_bar=True)
+    logger.info(f"Successfully created {len(embeddings)} embeddings")
     return embeddings
 
 def update_chromadb(collection, jobs, existing_ids):
@@ -139,9 +164,11 @@ def update_chromadb(collection, jobs, existing_ids):
     
     if not new_jobs:
         print("✓ Không có job mới cần update")
+        logger.info("No new jobs to update")
         return 0
     
     print(f"✓ Tìm thấy {len(new_jobs)} jobs mới (đã loại bỏ duplicate)")
+    logger.info(f"Found {len(new_jobs)} new jobs to add (duplicates removed)")
     
     # Tạo text để embed (title + description)
     texts = []
@@ -185,9 +212,11 @@ def update_chromadb(collection, jobs, existing_ids):
             documents=texts
         )
         print(f"✓ Đã thêm {len(ids)} jobs vào ChromaDB")
+        logger.info(f"Successfully added {len(ids)} jobs to ChromaDB")
         return len(ids)
     except Exception as e:
         print(f"⚠ Lỗi khi add vào ChromaDB: {e}")
+        logger.error(f"Error adding jobs to ChromaDB: {e}", exc_info=True)
         # Try add từng cái một nếu batch fail
         added = 0
         for i, job_id in enumerate(ids):
@@ -199,9 +228,11 @@ def update_chromadb(collection, jobs, existing_ids):
                     documents=[texts[i]]
                 )
                 added += 1
-            except:
+            except Exception as add_error:
+                logger.warning(f"Failed to add job {job_id}: {add_error}")
                 continue
         print(f"✓ Đã thêm {added}/{len(ids)} jobs vào ChromaDB (một số có thể duplicate)")
+        logger.warning(f"Added {added}/{len(ids)} jobs individually (some may be duplicates)")
         return added
 
 def main():

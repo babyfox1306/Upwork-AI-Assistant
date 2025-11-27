@@ -5,9 +5,18 @@ AI Job Analyser - Phân tích job, scoring, category detection, trend extraction
 
 import yaml
 import json
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 import ollama
+
+# Add parent directory to path for utils
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from utils.logger import setup_logger
+
+# Setup logger
+logger = setup_logger('ai_analyser')
 
 # Load config
 config_path = Path(__file__).parent.parent / 'config' / 'config.yaml'
@@ -119,7 +128,15 @@ Trả lời bằng JSON format:
                     'score': 50,
                     'verdict': 'CẦN XEM XÉT'
                 }
-        except:
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse JSON from AI response for job {job_data.get('job_id', 'unknown')}: {e}")
+            analysis = {
+                'raw_response': result_text,
+                'score': 50,
+                'verdict': 'CẦN XEM XÉT'
+            }
+        except Exception as e:
+            logger.error(f"Error parsing AI response for job {job_data.get('job_id', 'unknown')}: {e}")
             analysis = {
                 'raw_response': result_text,
                 'score': 50,
@@ -130,9 +147,11 @@ Trả lời bằng JSON format:
         analysis['job_id'] = job_data.get('job_id')
         analysis['analysed_at'] = __import__('datetime').datetime.utcnow().isoformat()
         
+        logger.info(f"Successfully analyzed job {job_data.get('job_id', 'unknown')}: {analysis.get('verdict', 'N/A')}")
         return analysis
         
     except Exception as e:
+        logger.error(f"Error analyzing job {job_data.get('job_id', 'unknown')}: {e}", exc_info=True)
         return {
             'error': str(e),
             'job_id': job_data.get('job_id'),

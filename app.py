@@ -8,7 +8,6 @@ import yaml
 from pathlib import Path
 import chromadb
 from chromadb.config import Settings
-from sentence_transformers import SentenceTransformer
 import sys
 
 try:
@@ -23,6 +22,8 @@ except ImportError:
         st.stop()
 
 sys.path.insert(0, str(Path(__file__).parent))
+
+from utils.embedding import get_embedding_model
 
 # Load config
 @st.cache_resource
@@ -57,9 +58,14 @@ def init_chromadb():
     )
     return collection
 
+@st.cache_resource
+def _get_cached_embedding_model():
+    """Cache SentenceTransformer model để tăng tốc (Streamlit cache)"""
+    return get_embedding_model()
+
 def search_jobs(collection, query_text, top_k=10):
     """Search jobs trong ChromaDB"""
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+    model = _get_cached_embedding_model()
     query_embedding = model.encode([query_text])[0].tolist()
     
     results = collection.query(

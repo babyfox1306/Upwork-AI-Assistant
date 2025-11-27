@@ -14,6 +14,16 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlencode, quote
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import sys
+
+# Add parent directory to path for utils
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from utils.logger import setup_logger
+from utils.validation import validate_job, sanitize_job
+
+# Setup logger
+logger = setup_logger('crawl_multi_source')
 
 # Load config
 config_path = Path(__file__).parent.parent / 'config' / 'config.yaml'
@@ -32,13 +42,17 @@ raw_jobs_file = Path(__file__).parent.parent / 'data' / 'raw_jobs.jsonl'
 
 if raw_jobs_file.exists():
     with open(raw_jobs_file, 'r', encoding='utf-8') as f:
-        for line in f:
+        for line_num, line in enumerate(f, 1):
             if line.strip():
                 try:
                     job = json.loads(line)
-                    existing_job_ids.add(job.get('job_id', ''))
-                except:
-                    pass
+                    job_id = job.get('job_id', '')
+                    if job_id:
+                        existing_job_ids.add(job_id)
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Invalid JSON at line {line_num} in raw_jobs.jsonl: {e}")
+                except Exception as e:
+                    logger.error(f"Error loading existing job at line {line_num}: {e}")
 
 def generate_job_id(title, link, source):
     """Generate unique job ID từ title, link và source"""
@@ -107,6 +121,14 @@ def normalize_job(entry, source_name, source_type):
         'crawled_at': datetime.utcnow().isoformat()
     }
     
+    # Sanitize and validate
+    job_data = sanitize_job(job_data)
+    is_valid, errors = validate_job(job_data)
+    
+    if not is_valid:
+        logger.warning(f"Invalid job data from {source_name}: {', '.join(errors)}")
+        return None
+    
     return job_data
 
 def crawl_rss_feed(feed_config):
@@ -130,30 +152,41 @@ def crawl_rss_feed(feed_config):
         
         if status not in [200, 301, 302]:  # Allow redirects
             error_msg = f"HTTP {status}"
+            logger.warning(f"RSS feed {name} returned status {status}")
             return ([], error_msg)
         
         # Check bozo (parsing errors)
         if hasattr(feed, 'bozo') and feed.bozo:
             if hasattr(feed, 'bozo_exception'):
                 error_msg = f"Parse error: {str(feed.bozo_exception)[:40]}"
+                logger.warning(f"RSS feed {name} parse error: {feed.bozo_exception}")
             else:
                 error_msg = "Parse error"
+                logger.warning(f"RSS feed {name} parse error (unknown)")
             return ([], error_msg)
         
         if not feed.entries:
+            logger.debug(f"RSS feed {name} has no entries")
             return ([], None)
         
         jobs = []
         for entry in feed.entries:
-            job = normalize_job(entry, name, 'rss')
-            if job:
-                jobs.append(job)
-                existing_job_ids.add(job['job_id'])
+            try:
+                job = normalize_job(entry, name, 'rss')
+                if job:
+                    jobs.append(job)
+                    existing_job_ids.add(job['job_id'])
+            except Exception as e:
+                logger.error(f"Error normalizing job from {name}: {e}")
+                continue
         
+        logger.info(f"RSS feed {name}: found {len(jobs)} new jobs")
         return (jobs, None)
     
     except Exception as e:
-        return ([], str(e)[:50])
+        error_msg = str(e)[:50]
+        logger.error(f"Error crawling RSS feed {name}: {e}", exc_info=True)
+        return ([], error_msg)
 
 def crawl_api_source(api_config):
     """Crawl từ API"""
@@ -182,33 +215,42 @@ def crawl_api_source(api_config):
         
         jobs = []
         for item in valid_data:
-            # RemoteOK API format
-            if 'slug' in item or 'id' in item:
-                entry = {
-                    'title': item.get('position', item.get('title', item.get('name', ''))),
-                    'link': item.get('url', item.get('apply_url', f"https://remoteok.io/remote-jobs/{item.get('id', '')}")),
-                    'description': item.get('description', item.get('summary', '')),
-                    'location': item.get('location', item.get('location_name', 'Remote')),
-                    'published': item.get('epoch', item.get('created_at', item.get('date', '')))
-                }
-            else:
-                # Generic API format
-                entry = {
-                    'title': item.get('title', item.get('name', '')),
-                    'link': item.get('url', item.get('link', item.get('apply_url', ''))),
-                    'description': item.get('description', item.get('summary', '')),
-                    'location': item.get('location', ''),
-                    'published': item.get('created_at', item.get('date', ''))
-                }
-            
-            job = normalize_job(entry, name, 'api')
-            if job:
-                jobs.append(job)
-                existing_job_ids.add(job['job_id'])
+            try:
+                # RemoteOK API format
+                if 'slug' in item or 'id' in item:
+                    entry = {
+                        'title': item.get('position', item.get('title', item.get('name', ''))),
+                        'link': item.get('url', item.get('apply_url', f"https://remoteok.io/remote-jobs/{item.get('id', '')}")),
+                        'description': item.get('description', item.get('summary', '')),
+                        'location': item.get('location', item.get('location_name', 'Remote')),
+                        'published': item.get('epoch', item.get('created_at', item.get('date', '')))
+                    }
+                else:
+                    # Generic API format
+                    entry = {
+                        'title': item.get('title', item.get('name', '')),
+                        'link': item.get('url', item.get('link', item.get('apply_url', ''))),
+                        'description': item.get('description', item.get('summary', '')),
+                        'location': item.get('location', ''),
+                        'published': item.get('created_at', item.get('date', ''))
+                    }
+                
+                job = normalize_job(entry, name, 'api')
+                if job:
+                    jobs.append(job)
+                    existing_job_ids.add(job['job_id'])
+            except Exception as e:
+                logger.error(f"Error processing API item from {name}: {e}")
+                continue
         
+        logger.info(f"API source {name}: found {len(jobs)} new jobs")
         return jobs
     
+    except requests.RequestException as e:
+        logger.error(f"API request error for {name}: {e}")
+        raise Exception(f"{name}: {str(e)[:50]}")
     except Exception as e:
+        logger.error(f"Error crawling API source {name}: {e}", exc_info=True)
         raise Exception(f"{name}: {str(e)[:50]}")
 
 def main():
@@ -335,15 +377,38 @@ def main():
     
     # Save jobs
     print(f"\n💾 Đang lưu {len(all_jobs)} jobs...")
+    logger.info(f"Saving {len(all_jobs)} new jobs to {raw_jobs_file}")
+    
     if all_jobs:
+        saved_count = 0
+        skipped_count = 0
+        
         with open(raw_jobs_file, 'a', encoding='utf-8') as f:
             for job in all_jobs:
-                f.write(json.dumps(job, ensure_ascii=False) + '\n')
+                try:
+                    # Final validation before saving
+                    is_valid, errors = validate_job(job)
+                    if not is_valid:
+                        logger.warning(f"Skipping invalid job {job.get('job_id', 'unknown')}: {', '.join(errors)}")
+                        skipped_count += 1
+                        continue
+                    
+                    f.write(json.dumps(job, ensure_ascii=False) + '\n')
+                    saved_count += 1
+                except Exception as e:
+                    logger.error(f"Error saving job {job.get('job_id', 'unknown')}: {e}")
+                    skipped_count += 1
+                    continue
         
         sources_count = len(set(j['source'] for j in all_jobs))
-        print(f"\n✅ Đã thêm {len(all_jobs)} jobs mới từ {sources_count} nguồn")
+        print(f"\n✅ Đã thêm {saved_count} jobs mới từ {sources_count} nguồn")
+        if skipped_count > 0:
+            print(f"⚠️  Đã bỏ qua {skipped_count} jobs không hợp lệ")
+            logger.warning(f"Skipped {skipped_count} invalid jobs")
+        logger.info(f"Successfully saved {saved_count} jobs from {sources_count} sources")
     else:
         print("\nℹ️  Không tìm thấy jobs mới")
+        logger.info("No new jobs found")
     
     print("=" * 60)
 

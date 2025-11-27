@@ -10,7 +10,6 @@ import yaml
 from pathlib import Path
 import chromadb
 from chromadb.config import Settings
-from sentence_transformers import SentenceTransformer
 try:
     from ollama import Client
     OLLAMA_CLIENT = True
@@ -24,6 +23,12 @@ except ImportError:
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from utils.embedding import get_embedding_model
+from utils.logger import setup_logger
+
+# Setup logger
+logger = setup_logger('query_ai')
 
 # Load config
 config_path = Path(__file__).parent.parent / 'config' / 'config.yaml'
@@ -48,13 +53,17 @@ def init_chromadb():
         settings=Settings(anonymized_telemetry=False)
     )
     
-    collection = client.get_collection(chromadb_config['collection_name'])
+    # Dùng get_or_create_collection để tự động tạo nếu chưa có
+    collection = client.get_or_create_collection(
+        name=chromadb_config['collection_name'],
+        metadata={"hnsw:space": "cosine"}
+    )
     return collection
 
 def search_jobs(collection, query_text, top_k=10):
     """Search jobs trong ChromaDB"""
     # Tạo embedding cho query
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+    model = get_embedding_model()
     query_embedding = model.encode([query_text])[0].tolist()
     
     # Query ChromaDB
@@ -315,6 +324,7 @@ def query_ollama(prompt):
             )
             return response['message']['content']
     except Exception as e:
+        logger.error(f"Error querying Ollama: {e}", exc_info=True)
         return f"Lỗi khi query Ollama: {e}. Đảm bảo Ollama đang chạy: ollama serve"
 
 def main():

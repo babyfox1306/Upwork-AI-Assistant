@@ -55,7 +55,11 @@ def init_chromadb():
         settings=Settings(anonymized_telemetry=False)
     )
     
-    collection = client.get_collection(chromadb_config['collection_name'])
+    # Dùng get_or_create_collection để tự động tạo nếu chưa có
+    collection = client.get_or_create_collection(
+        name=chromadb_config['collection_name'],
+        metadata={"hnsw:space": "cosine"}
+    )
     return collection
 
 def load_job_from_jsonl(job_id):
