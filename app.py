@@ -63,6 +63,39 @@ def _get_cached_embedding_model():
     """Cache SentenceTransformer model để tăng tốc (Streamlit cache)"""
     return get_embedding_model()
 
+@st.cache_data
+def _load_ai_rules():
+    """Cache AI rules files để tránh đọc file mỗi lần chat"""
+    rules_dir = Path(__file__).parent / 'ai_rules'
+    rules = {
+        'system_instruction': '',
+        'rulebook': '',
+        'hardware': '',
+        'profile_context': ''
+    }
+    
+    analysis_file = rules_dir / 'analysis.md'
+    if analysis_file.exists():
+        with open(analysis_file, 'r', encoding='utf-8') as f:
+            rules['system_instruction'] = f.read()
+    
+    rules_file = rules_dir / 'upwork_rules.md'
+    if rules_file.exists():
+        with open(rules_file, 'r', encoding='utf-8') as f:
+            rules['rulebook'] = f.read()
+    
+    hardware_file = rules_dir / 'hardware.md'
+    if hardware_file.exists():
+        with open(hardware_file, 'r', encoding='utf-8') as f:
+            rules['hardware'] = f.read()
+    
+    profile_context_file = rules_dir / 'profile_context.md'
+    if profile_context_file.exists():
+        with open(profile_context_file, 'r', encoding='utf-8') as f:
+            rules['profile_context'] = f.read()
+    
+    return rules
+
 def search_jobs(collection, query_text, top_k=10):
     """Search jobs trong ChromaDB"""
     try:
