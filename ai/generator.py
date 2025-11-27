@@ -16,6 +16,7 @@ with open(config_path, 'r', encoding='utf-8') as f:
 
 ollama_config = config.get('ollama', {})
 ollama_model = ollama_config.get('model', 'qwen2.5:7b-instruct-q4_K_M')
+ollama_base_url = ollama_config.get('base_url', 'http://localhost:11434')
 
 # Load AI rules
 ai_rules_path = Path(__file__).parent.parent / 'ai_rules'
@@ -88,8 +89,16 @@ def generate_proposal(job_id: str = None, job_link: str = None, job_data: Dict =
     profile = load_profile()
     template = load_template()
     
-    # Build prompt
-    prompt = f"""Bạn là Lysa - AI hỗ trợ viết proposal chuyên nghiệp, hỗ trợ Tuấn Anh (freelancer).
+    # Build prompt với creativity và không rập khuôn
+    prompt = f"""Bạn là Lysa - AI hỗ trợ viết proposal chuyên nghiệp, sáng tạo, không rập khuôn. Bạn hỗ trợ Tuấn Anh (freelancer).
+
+CÁCH VIẾT PROPOSAL:
+- Linh hoạt: mỗi proposal khác nhau, phù hợp với từng job cụ thể
+- Tự nhiên: không dùng template cứng nhắc, viết như đang nói chuyện với client
+- Cá nhân hóa: highlight điểm phù hợp nhất với job này, không list tất cả skills
+- Sáng tạo: thay đổi cách mở đầu, cách kết thúc, cách trình bày
+- Thực tế: nói về value cụ thể, không chỉ list features
+- Không rập khuôn: tránh dùng cùng một cấu trúc, cùng một từ ngữ cho mọi proposal
 
 {profile_context}
 
@@ -107,30 +116,45 @@ Source: {job_data.get('source', 'N/A')}
 TEMPLATE:
 {template}
 
-Yêu cầu:
-1. Fill template với thông tin job và profile
-2. Thay [CÁ NHÂN HÓA] bằng đoạn giải thích tại sao phù hợp (2-3 câu)
-3. Thay [RELEVANT_SKILLS] bằng skills liên quan từ profile
-4. Giữ tone chuyên nghiệp, không quá formal, không quá casual
-5. Độ dài 150-200 từ
-6. Tập trung vào value, không chỉ list skills
-7. Không dùng "I am the best", "I guarantee" - quá salesy
+YÊU CẦU:
+1. Fill template với thông tin job và profile, nhưng LINH HOẠT - không rập khuôn
+2. Thay [CÁ NHÂN HÓA] bằng đoạn giải thích tại sao phù hợp (2-3 câu), mỗi job khác nhau thì viết khác nhau
+3. Thay [RELEVANT_SKILLS] bằng skills liên quan từ profile, nhưng chỉ highlight những gì THỰC SỰ liên quan
+4. Tone tự nhiên: như đang nói chuyện với client, không quá formal, không quá casual
+5. Độ dài 150-200 từ, nhưng có thể linh hoạt
+6. Tập trung vào VALUE cụ thể cho job này, không chỉ list skills chung chung
+7. Tránh salesy: không dùng "I am the best", "I guarantee", "I promise"
+8. Sáng tạo: thay đổi cách mở đầu, cách kết thúc, cách trình bày cho mỗi proposal
+9. Cá nhân hóa: mỗi proposal phải khác nhau, phù hợp với từng job cụ thể
+
+VÍ DỤ KHÔNG RẬP KHUÔN:
+- Job A: Mở đầu bằng câu hỏi hoặc observation về project
+- Job B: Mở đầu bằng kinh nghiệm tương tự
+- Job C: Mở đầu bằng cách tiếp cận cụ thể
 
 Trả lời CHỈ proposal text, không thêm gì khác."""
 
     try:
-        response = ollama.chat(
+        from ollama import Client
+        client = Client(base_url=ollama_base_url, timeout=60.0)
+        
+        response = client.chat(
             model=ollama_model,
             messages=[
                 {
                     'role': 'system',
-                    'content': 'Bạn là Lysa - AI viết proposal chuyên nghiệp, thực tế, không salesy.'
+                    'content': 'Bạn là Lysa - AI viết proposal chuyên nghiệp, sáng tạo, không rập khuôn, thực tế, không salesy. Mỗi proposal phải khác nhau, phù hợp với từng job cụ thể.'
                 },
                 {
                     'role': 'user',
                     'content': prompt
                 }
-            ]
+            ],
+            options={
+                'temperature': 0.8,  # Tăng temperature để sáng tạo hơn, không rập khuôn
+                'num_predict': 500,
+                'top_p': 0.9,  # Diversity trong cách viết
+            }
         )
         
         proposal_text = response['message']['content'].strip()

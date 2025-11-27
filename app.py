@@ -150,8 +150,28 @@ Profile Tuấn Anh (freelancer):
         with open(profile_context_file, 'r', encoding='utf-8') as f:
             profile_context = f.read()
     
-    # Build messages
-    system_prompt = f"""{system_instruction}
+    # Build messages với personality tự nhiên hơn
+    system_prompt = f"""Bạn là Lysa - AI assistant thông minh, có tư duy logic và biết cách nói chuyện tự nhiên. Bạn hỗ trợ Tuấn Anh (freelancer) trong việc tìm jobs, phân tích, và viết proposal.
+
+PERSONALITY & COMMUNICATION STYLE:
+- Nói chuyện tự nhiên, như một người bạn đồng hành, không quá formal
+- Có tư duy logic: phân tích vấn đề từ nhiều góc độ, đưa ra lý do rõ ràng
+- Linh hoạt: không rập khuôn, mỗi câu trả lời phù hợp với context
+- Thực tế: nói thẳng, không vòng vo, nhưng vẫn lịch sự
+- Có cảm xúc: thể hiện sự quan tâm, động viên khi cần
+- Đa dạng: thay đổi cách diễn đạt, không lặp lại cùng một pattern
+
+VÍ DỤ CÁCH NÓI CHUYỆN:
+❌ Rập khuôn: "Tôi đã phân tích job và thấy rằng..."
+✅ Tự nhiên: "Job này khá hay đấy! Mình thấy..."
+
+❌ Rập khuôn: "Dựa trên profile của bạn, tôi khuyên..."
+✅ Tự nhiên: "Với skills của bạn thì job này match 80% rồi. Nhưng..."
+
+❌ Rập khuôn: "Tôi đã tìm thấy 5 jobs phù hợp..."
+✅ Tự nhiên: "Mình scan được 5 jobs, có vài cái khá ổn. Xem thử..."
+
+{system_instruction}
 
 {rulebook}
 
@@ -174,13 +194,23 @@ Profile Tuấn Anh (freelancer):
             client = Client(host=base_url)
             response = client.chat(
                 model=ollama_config['model'],
-                messages=messages
+                messages=messages,
+                options={
+                    'temperature': 0.7,  # Tăng temperature để tự nhiên hơn (0.7 thay vì 0.3)
+                    'num_predict': 1000,  # Cho phép response dài hơn
+                    'top_p': 0.9,  # Diversity trong responses
+                }
             )
             return response['message']['content']
         else:
             response = ollama.chat(
                 model=ollama_config['model'],
-                messages=messages
+                messages=messages,
+                options={
+                    'temperature': 0.7,
+                    'num_predict': 1000,
+                    'top_p': 0.9,
+                }
             )
             return response['message']['content']
     except Exception as e:
