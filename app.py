@@ -65,31 +65,34 @@ def _get_cached_embedding_model():
 
 def search_jobs(collection, query_text, top_k=10):
     """Search jobs trong ChromaDB"""
-    model = _get_cached_embedding_model()
-    query_embedding = model.encode([query_text])[0].tolist()
-    
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=top_k
-    )
-    
-    jobs = []
-    if results['ids'] and len(results['ids'][0]) > 0:
-        for i in range(len(results['ids'][0])):
-            job = {
-                'job_id': results['ids'][0][i],
-                'title': results['metadatas'][0][i].get('title', ''),
-                'description': results['documents'][0][i],
-                'budget': results['metadatas'][0][i].get('budget', ''),
-                'proposals': results['metadatas'][0][i].get('proposals', ''),
-                'client_country': results['metadatas'][0][i].get('client_country', ''),
-                'category': results['metadatas'][0][i].get('category', ''),
-                'link': results['metadatas'][0][i].get('link', ''),
-                'source': results['metadatas'][0][i].get('source', 'Unknown'),
-            }
-            jobs.append(job)
-    
-    return jobs
+    try:
+        model = _get_cached_embedding_model()
+        query_embedding = model.encode([query_text])[0].tolist()
+        
+        results = collection.query(
+            query_embeddings=[query_embedding],
+            n_results=top_k
+        )
+        
+        jobs = []
+        # Check if results are valid
+        if results and 'ids' in results and results['ids'] and len(results['ids']) > 0:
+            if len(results['ids'][0]) > 0:
+                for i in range(len(results['ids'][0])):
+                    job = {
+                        'job_id': results['ids'][0][i],
+                        'title': results['metadatas'][0][i].get('title', ''),
+                        'description': results['documents'][0][i],
+                        'budget': results['metadatas'][0][i].get('budget', ''),
+                        'proposals': results['metadatas'][0][i].get('proposals', ''),
+                        'client_country': results['metadatas'][0][i].get('client_country', ''),
+                        'category': results['metadatas'][0][i].get('category', ''),
+                        'link': results['metadatas'][0][i].get('link', ''),
+                        'source': results['metadatas'][0][i].get('source', 'Unknown'),
+                    }
+                    jobs.append(job)
+        
+        return jobs
 
 def chat_with_ai(user_input, collection, conversation_history):
     """Chat với AI"""
