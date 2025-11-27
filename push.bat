@@ -1,5 +1,8 @@
 @echo off
 cd /d "D:\Upwork Sniper"
+echo Pulling latest changes from GitHub...
+git pull origin main --rebase
+echo.
 echo Adding all files...
 git add .
 echo.
