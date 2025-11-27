@@ -126,9 +126,9 @@ Job: "Senior React Developer - Build complex SPA with Redux"
   "category": "Frontend"
 }}
 
-QUAN TRỌNG: Chỉ trả về JSON, không có text thêm trước hoặc sau.
+QUAN TRỌNG: BẮT BUỘC trả về CHỈ JSON, không có text, không có markdown, không có giải thích. Bắt đầu bằng {{ và kết thúc bằng }}.
 
-Trả lời bằng JSON format (chỉ JSON, không có markdown hay text khác):
+Trả lời CHỈ JSON (copy-paste format này và fill vào):
 {{
   "intent_analysis": "...",
   "tech_feasibility": "HIGH/MEDIUM/LOW - [lý do cụ thể]",

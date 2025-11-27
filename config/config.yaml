@@ -226,7 +226,7 @@ search_keywords:
 
 # Ollama Configuration
 ollama:
-  model: "gemma3:1b"  # Model nhẹ nhất (815 MB), rất nhanh. Nếu cần chất lượng hơn: "llama3.2:3b" hoặc "qwen2.5:7b-instruct-q4_K_M"
+  model: "llama3.2:3b"  # Cân bằng tốc độ/chất lượng (2.0 GB). Nhanh hơn 7B 2-3x, đủ thông minh để follow JSON format. Nếu cần nhanh hơn: "gemma3:1b", nếu cần chất lượng hơn: "qwen2.5:7b-instruct-q4_K_M"
   base_url: "http://localhost:11434"
   embedding_model: "all-minilm"
   # Tip: Nếu chậm, dùng model nhẹ hơn: llama3.2:3b (nhanh hơn 2-3x)
