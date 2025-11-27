@@ -28,11 +28,32 @@ jobs:
           pip install --upgrade pip
           pip install feedparser pyyaml requests beautifulsoup4
           # concurrent.futures is built-in Python 3.2+, no need to install
+          # Tạo thư mục logs nếu chưa có (cho utils/logger)
+          mkdir -p logs
 
       - name: Crawl Jobs & Trends from Multiple Sources
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
+          echo "=========================================="
+          echo "Starting crawl job..."
+          echo "=========================================="
           python scripts/crawl_multi_source.py
+          echo ""
+          echo "=========================================="
+          echo "Crawl completed. Checking results..."
+          echo "=========================================="
+          if [ -f "data/raw_jobs.jsonl" ]; then
+            echo "Total jobs in file: $(wc -l < data/raw_jobs.jsonl)"
+            echo "Last 5 jobs:"
+            tail -5 data/raw_jobs.jsonl | head -5
+          else
+            echo "WARNING: raw_jobs.jsonl not found!"
+          fi
+          if [ -f "logs/crawl_multi_source.log" ]; then
+            echo ""
+            echo "Last 20 log lines:"
+            tail -20 logs/crawl_multi_source.log
+          fi
 
       - name: Commit and push if changes
         run: |

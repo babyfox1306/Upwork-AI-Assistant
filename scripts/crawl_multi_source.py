@@ -411,6 +411,16 @@ def main():
     print(f"\n💾 Đang lưu {len(all_jobs)} jobs...")
     logger.info(f"Saving {len(all_jobs)} new jobs to {raw_jobs_file}")
     
+    # Debug: Print summary
+    if len(all_jobs) == 0:
+        print("⚠️  WARNING: Không tìm thấy jobs mới!")
+        print(f"   - Đã crawl {len(enabled_job_boards)} job boards")
+        if not (skip_tech_blogs and is_ci):
+            print(f"   - Đã crawl {len(enabled_blogs)} tech blogs")
+        print(f"   - Đã crawl {len(enabled_apis)} API sources")
+        print("   - Có thể tất cả jobs đã tồn tại (duplicate)")
+        logger.warning("No new jobs found after crawling all sources")
+    
     if all_jobs:
         saved_count = 0
         skipped_count = 0
@@ -438,8 +448,18 @@ def main():
             print(f"⚠️  Đã bỏ qua {skipped_count} jobs không hợp lệ")
             logger.warning(f"Skipped {skipped_count} invalid jobs")
         logger.info(f"Successfully saved {saved_count} jobs from {sources_count} sources")
+        
+        # Print sample jobs for debugging
+        if saved_count > 0:
+            print(f"\n📋 Sample jobs (first 3):")
+            for i, job in enumerate(all_jobs[:3], 1):
+                print(f"   {i}. {job.get('title', 'N/A')[:60]} - {job.get('source', 'Unknown')}")
     else:
         print("\nℹ️  Không tìm thấy jobs mới")
+        print("   Có thể:")
+        print("   - Tất cả jobs đã tồn tại (duplicate)")
+        print("   - Feeds không có entries mới")
+        print("   - Có lỗi trong quá trình crawl (check logs)")
         logger.info("No new jobs found")
     
     print("=" * 60)
